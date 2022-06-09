@@ -51,7 +51,7 @@ Channel
 // From multiple read FAST5s to single read FAST5s.
 process multi2single {
     input:
-		tuple val(sample),val(condition),file(fast5) from multi2single_annot
+		tuple val(sample),val(condition),value(fast5) from multi2single_annot
 
     output:
     	tuple val(sample), val(condition) into singleReadFAST5_fastq
@@ -66,7 +66,7 @@ process multi2single {
     	mkdir -p ${params.resultsDir}/${condition}/${sample}
     	mkdir -p ${params.resultsDir}/${condition}/${sample}/FAST5/
 
-    	multi_to_single_fast5 --threads ${task.cpus} --input_path ${fast5} --save_path ${params.resultsDir}/${condition}/${sample}/FAST5/
+    	multi_to_single_fast5 --recursive --threads ${task.cpus} --input_path ${fast5} --save_path ${params.resultsDir}/${condition}/${sample}/FAST5/
     """
 	else
 	"""
@@ -76,10 +76,10 @@ process multi2single {
     	mkdir -p ${params.resultsDir}/${condition}/${sample}/FAST5/
     	mkdir -p ${params.resultsDir}/${condition}/${sample}/FAST5/0/
 
-
-        ls -trlh ${fast5}
-		cp ${fast5}/* ${params.resultsDir}/${condition}/${sample}/FAST5/0/
-
+		f5=\$(find ${fast5} | grep \"\\.fast5\");
+        for single_f5 in \$f5; do
+          cp \$single_f5 ${params.resultsDir}/${condition}/${sample}/FAST5/0/;
+        done
     """
 }
 
@@ -1004,11 +1004,11 @@ process postprocessing {
     if(params.postprocessing)
     """
 		mkdir -p ${params.resultsDir}/output_bed_files/
-		#mkdir -p ${params.resultsDir}/output_statistical/
+		mkdir -p ${params.resultsDir}/output_statistical/
 
 		Rscript ${params.postprocessingScript} path=${params.resultsDir} genomebed=${params.genomebed} genomegtf=${params.gtf} resultsFolder=${params.resultsDir}/output_bed_files/ mc.cores=${task.cpus} threshold=${params.threshold} pathdena=${params.reference_condition}/dena/prova pathdrummer=drummer pathdifferr=differr pathyanocomp=yanocomp pathmines=${params.reference_condition}/mines pathnanocompore=nanocompore patheligos=eligos/merged pathepinanoError=epinanoError pathepinanoSVM=${params.reference_condition}/epinanoSVM pathxpore=xpore pathnanodoc=nanodoc pathnanom6a=${params.reference_condition}/nanom6a/result_final pathtomboComparison=tomboComparison
 
-		#Rscript ${params.statisticalAnalysis} bed_folder=${params.resultsDir}/output_bed_files genomebed=${params.genomebed} genomegtf=${params.gtf} genesbed=${params.genesbed} #resultsFolder=${params.resultsDir}/output_statistical/ mc.cores=${task.cpus} peaks=${params.peaksfile}
+		Rscript ${params.statisticalAnalysis} bed_folder=${params.resultsDir}/output_bed_files genomebed=${params.genomebed} genomegtf=${params.gtf} genesbed=${params.genesbed} resultsFolder=${params.resultsDir}/output_statistical/ mc.cores=${task.cpus} peaks=${params.peaksfile} binLength=${params.binLength}
 
     """
 	else
