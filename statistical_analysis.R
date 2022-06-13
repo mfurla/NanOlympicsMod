@@ -1,4 +1,3 @@
-###### Statistical Analysis Part ######
 #!/usr/bin/env Rscript
 ### load input variables ###
 args = commandArgs(trailingOnly=TRUE)
@@ -18,7 +17,7 @@ library(PRROC)
 library(stringr)
 
 ## 1) Binning the genome in windows of length w
-w <- binLength # binLength parameter from outside
+w <- as.numeric(binLength) # binLength parameter from outside
 genesBed <- read.table(genesbed, sep = "\t") # bed_genome parameter from outside
 colnames(genesBed) <- c("chr","start","end","name","score","strand")
 
@@ -61,7 +60,7 @@ genesBinsList <- mclapply(1:nrow(genesBed),function(k)
       grangeTmp
     }
   }
-},mc.cores=6)
+}, mc.cores=as.numeric(mccores))
 
 genesBins <- unlist(as(genesBinsList,"GRangesList"))
 genesBins <- genesBins[which(width(genesBins) == w), ] # Remove bins without length equal to w
@@ -74,7 +73,7 @@ listmin <- paste0(c("differ", "drummer", "yanocomp", "nanocompore", "eligos", "x
 
 ## 3) Convert .bed output file of each tool + peaks file into a Granges object
 # Peaks
-peaks_bed <- read.table(peaks, header = FALSE, sep = "\t") # MiCLIP and MAZTER-seq peaks file parameter from outside
+peaks_bed <- read.table(peaks, header = TRUE, sep = "\t") # MiCLIP and MAZTER-seq peaks file parameter from outside
 colnames(peaks_bed) <- c("chr", "start", "end", "desc", "score", "strand")
 peaks_granges <- makeGRangesFromDataFrame(peaks_bed)
 
@@ -99,6 +98,8 @@ names(threshold_default) <- c("dena_output.bed", "differr_output.bed", "drummer_
 
 for (y in files) {
   x <- basename(y)
+  recall <- c()
+  precision <- c()
   # Extraction of bed file + convertion to granges
   bed_file <- read.table(y, header = T, sep = "\t")
   granges <- makeGRangesFromDataFrame(bed_file, keep.extra.columns = T)
@@ -129,7 +130,7 @@ for (y in files) {
     #hist(negative, main = paste0(x, " - Scores for negative peaks"))
     #dev.off()
     pr <- pr.curve(scores.class0 = unname(positive), scores.class1 = unname(negative), curve=T)
-    pdf(file = paste0(x,"_PRcurve.pdf"), width = 8, height = 8)
+    pdf(file = paste0(resultsFolder, x,"_PRcurve.pdf"), width = 8, height = 8)
     plot(pr, main = paste0(x, " Precision-Recall curve"))
     dev.off()
     listPRcurves[[x]] <- pr
@@ -152,7 +153,6 @@ for (y in files) {
     #pdf(paste0(x, "_PRcurve_manual.pdf"))
     #plot(recall, precision, main = paste0(x, " - PR manual"), type = "l", xlim = c(0, 1), ylim = c(0, 1))
     #dev.off()
-    }
   } 
   else if (grepl(x, pattern = "mines")) {
     hitsMatrix[overlap[, 2], x] <- 1
@@ -192,8 +192,8 @@ for (y in files) {
       F1score <- 2*(precision*recall)/(precision+recall)
       names(F1score) <- "default"
       listF1score[[x]] <- F1score
+      }
     }
-  }
 }
 
 ### Code for PR curve nanom6A which has multiple files each run with a different threshold
@@ -204,19 +204,19 @@ max_thr <- c()
 short <- matrix_nanom6A[,2:ncol(matrix_nanom6A)]
 
 for (row in 1:nrow(short)) {
- v <- c()
- if (sum(short[row,]) != 0){
-   for (col in 1:ncol(short)) {
-     if(short[row,col] == 1){
-       v <- c(v, as.numeric(colnames(short)[col]))
-     }
-   }
-   max <- max(v)
-   max_thr <- c(max_thr, max)
- }
- else{
-   max_thr <- c(max_thr, 0)
- }
+  v <- c()
+  if (sum(short[row,]) != 0){
+    for (col in 1:ncol(short)) {
+      if(short[row,col] == 1){
+        v <- c(v, as.numeric(colnames(short)[col]))
+      }
+    }
+    max <- max(v)
+    max_thr <- c(max_thr, max)
+  } 
+  else{
+    max_thr <- c(max_thr, 0)
+  }
 }
 
 new_matrix <- cbind(matrix_nanom6A, max_thr)
@@ -235,11 +235,11 @@ listPRcurves[["nanom6A_output.bed"]] <- pr
 #dev.off()
 
 ### Save list of F1 scores
-capture.output(listF1score, file = "F1score_list.csv")
+capture.output(listF1score, file = paste0(resultsFolder, "F1score_list.csv"))
 
 ### Plot all the Precision-Recall curves together
 col <- c(7,8,420,153,31,100,33,47,53,62,400,454,28,10)
-pdf(file = "Summary PR curves.pdf", width = 8, height = 8)
+pdf(file = paste0(resultsFolder, "Summary_PR_curves.pdf"), width = 8, height = 8)
 for (x in 1:length(listPRcurves)) {
   if (x == 1){
     plot(listPRcurves[[x]], color = colors()[col[x]], main = "Summary PR curves")
