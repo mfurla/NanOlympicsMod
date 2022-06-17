@@ -244,7 +244,7 @@ output_processing <- function(tool, path_folder, output_file, filtering_paramete
                                                                                                           table
                                                                                                           } 
                                                                                                         })
-                                                      if (nrow(txt_files_df) != 0){
+                                                      if (length(txt_files_df) != 0){
                                                         data_nanodoc <- do.call("rbind", lapply(txt_files_df, as.data.frame))
                                                         nanodoc <- data_nanodoc[,c(1,1,12,12,13)] 
                                                         nanodoc$V1 <- nanodoc$V1 - 1
@@ -255,7 +255,7 @@ output_processing <- function(tool, path_folder, output_file, filtering_paramete
                                                         nanodoc$strand <- rep("*", nrow(nanodoc))
                                                         nanodoc <- nanodoc[,c(5,1,2,6,3,4)]
                                                         colnames(nanodoc) <- c("Chr", "Start", "End", "Strand", "Status", "Score")
-                                                        write.table(nanodoc, file = output_file, quote = F, sep = "\t", row.names = F)
+                                                        if(nrow(nanodoc)>0){write.table(nanodoc, file = output_file, quote = F, sep = "\t", row.names = F)}
                                                       }
                                                         else {message(paste0(tool,"'s output files don't exist."))}
                                                     }
