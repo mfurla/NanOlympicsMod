@@ -238,7 +238,7 @@ output_processing <- function(tool, path_folder, output_file, filtering_paramete
             },
             nanodoc = {output_nanodoc <- function(){if (length(list.files(path = path_folder, pattern = "*.txt")) != 0){
                                                       txt_files_ls <- list.files(path = path_folder, pattern="*.txt")
-                                                      txt_files_df <- lapply(txt_files_ls, function(x) {if file.info(paste0(path_folder, "/", x))$size != 0){
+                                                      txt_files_df <- lapply(txt_files_ls, function(x) {if(file.info(paste0(path_folder, "/", x))$size != 0){
                                                                                                           table <- read.table(file = paste0(path_folder, "/", x), sep = "\t")
                                                                                                           table <- cbind(table, x) 
                                                                                                           table
