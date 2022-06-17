@@ -51,12 +51,11 @@ Channel
 // From multiple read FAST5s to single read FAST5s.
 process multi2single {
     input:
-		tuple val(sample),val(condition),value(fast5) from multi2single_annot
+	tuple val(sample),val(condition),val(fast5) from multi2single_annot
 
     output:
     	tuple val(sample), val(condition) into singleReadFAST5_fastq
     	tuple val(condition), val(sample) into singleReadFAST5_tombo1
-    	tuple val(condition), val(sample) into singleReadFAST5_nanodoc
 
     script:
     if(params.multi2single)
@@ -70,16 +69,19 @@ process multi2single {
     """
 	else
 	"""
-		mkdir -p ${params.resultsDir}
+	mkdir -p ${params.resultsDir}
     	mkdir -p ${params.resultsDir}/${condition}
     	mkdir -p ${params.resultsDir}/${condition}/${sample}
     	mkdir -p ${params.resultsDir}/${condition}/${sample}/FAST5/
     	mkdir -p ${params.resultsDir}/${condition}/${sample}/FAST5/0/
 
-		f5=\$(find ${fast5} | grep \"\\.fast5\");
+
+        #ls -trlh ${fast5}
+        f5=\$(find ${fast5} | grep \"\\.fast5\");
         for single_f5 in \$f5; do
           cp \$single_f5 ${params.resultsDir}/${condition}/${sample}/FAST5/0/;
         done
+
     """
 }
 
@@ -262,6 +264,8 @@ process tombo1 {
 		tuple val(condition1) into condition1_tombo1_dena
 		tuple val(condition2) into condition2_tombo1_dena
 
+                tuple val(condition1) into tombo1_nanodoc
+                tuple val(condition2) into tombo2_nanodoc
     script:
     if(params.tombo1)
     """
@@ -568,26 +572,54 @@ process epinanoSVM {
     if(params.epinanoSVM)
     """
     	mkdir -p ${params.resultsDir}/${condition1}/epinanoSVM/
+        mkdir -p ${params.resultsDir}/${condition2}/epinanoSVM/
 
-		python3 /EpiNano-Epinano1.2.1/Epinano_Variants.py -n ${task.cpus} -T g -R genome.fa -b minimap.sort.1.bam -s /EpiNano-Epinano1.2.1/misc/sam2tsv.jar
-		
-		python3 /EpiNano-Epinano1.2.1/misc/Slide_Variants.py minimap.sort.1.plus_strand.per.site.csv 5
-		python3 /EpiNano-Epinano1.2.1/misc/Slide_Variants.py minimap.sort.1.minus_strand.per.site.csv 5
-		python3 /EpiNano-Epinano1.2.1/Epinano_Predict.py --model /EpiNano-Epinano1.2.1/models/rrach.q3.mis3.del3.linear.dump --predict minimap.sort.1.plus_strand.per.site.5mer.csv --columns 8,13,23 --out_prefix plus_mod_prediction
-		python3 /EpiNano-Epinano1.2.1/Epinano_Predict.py --model /EpiNano-Epinano1.2.1/models/rrach.q3.mis3.del3.linear.dump --predict minimap.sort.1.minus_strand.per.site.5mer.csv --columns 8,13,23 --out_prefix minus_mod_prediction
-		
-		mv minimap.sort.1.plus_strand.per.site.csv minimap.sort.1.minus_strand.per.site.csv minimap.sort.1.plus_strand.per.site.5mer.csv minimap.sort.1.minus_strand.per.site.5mer.csv plus_mod_prediction.q3.mis3.del3.MODEL.rrach.q3.mis3.del3.linear.dump.csv minus_mod_prediction.q3.mis3.del3.MODEL.rrach.q3.mis3.del3.linear.dump.csv ${params.resultsDir}/${condition1}/epinanoSVM/
+    	samtools view -F16 minimap.sort.1.bam > minimap.sort.1.plus.sam
+        samtools view -f16 minimap.sort.1.bam > minimap.sort.1.minus.sam
+        samtools view -F16 minimap.sort.2.bam > minimap.sort.2.plus.sam
+        samtools view -f16 minimap.sort.2.bam > minimap.sort.2.minus.sam
 
-		mkdir -p ${params.resultsDir}/${condition2}/epinanoSVM/
+        if [[ -s minimap.sort.1.plus.sam ]]; then
+           if [[ -s minimap.sort.1.minus.sam ]]; then
+               /usr/bin/python3 /EpiNano-Epinano1.2.1/Epinano_Variants.py -n ${task.cpus} -T g -R genome.fa -b minimap.sort.1.bam -s /EpiNano-Epinano1.2.1/misc/sam2tsv.jar
+               /usr/bin/python3 /EpiNano-Epinano1.2.1/misc/Slide_Variants.py minimap.sort.1.plus_strand.per.site.csv 5
+	       /usr/bin/python3 /EpiNano-Epinano1.2.1/misc/Slide_Variants.py minimap.sort.1.minus_strand.per.site.csv 5
+	       /usr/bin/python3 /EpiNano-Epinano1.2.1/Epinano_Predict.py --model /EpiNano-Epinano1.2.1/models/rrach.q3.mis3.del3.linear.dump --predict minimap.sort.1.plus_strand.per.site.5mer.csv --columns 8,13,23 --out_prefix plus_mod_prediction
+	       /usr/bin/python3 /EpiNano-Epinano1.2.1/Epinano_Predict.py --model /EpiNano-Epinano1.2.1/models/rrach.q3.mis3.del3.linear.dump --predict minimap.sort.1.minus_strand.per.site.5mer.csv --columns 8,13,23 --out_prefix minus_mod_prediction
 
-		python3 /EpiNano-Epinano1.2.1/Epinano_Variants.py -n ${task.cpus} -T g -R genome.fa -b minimap.sort.2.bam -s /EpiNano-Epinano1.2.1/misc/sam2tsv.jar
-		
-		python3 /EpiNano-Epinano1.2.1/misc/Slide_Variants.py minimap.sort.2.plus_strand.per.site.csv 5
-		python3 /EpiNano-Epinano1.2.1/misc/Slide_Variants.py minimap.sort.2.minus_strand.per.site.csv 5
-		python3 /EpiNano-Epinano1.2.1/Epinano_Predict.py --model /EpiNano-Epinano1.2.1/models/rrach.q3.mis3.del3.linear.dump --predict minimap.sort.2.plus_strand.per.site.5mer.csv --columns 8,13,23 --out_prefix plus_mod_prediction
-		python3 /EpiNano-Epinano1.2.1/Epinano_Predict.py --model /EpiNano-Epinano1.2.1/models/rrach.q3.mis3.del3.linear.dump --predict minimap.sort.2.minus_strand.per.site.5mer.csv --columns 8,13,23 --out_prefix minus_mod_prediction
-		
-		mv minimap.sort.2.plus_strand.per.site.csv minimap.sort.2.minus_strand.per.site.csv minimap.sort.2.plus_strand.per.site.5mer.csv minimap.sort.2.minus_strand.per.site.5mer.csv plus_mod_prediction.q3.mis3.del3.MODEL.rrach.q3.mis3.del3.linear.dump.csv minus_mod_prediction.q3.mis3.del3.MODEL.rrach.q3.mis3.del3.linear.dump.csv ${params.resultsDir}/${condition2}/epinanoSVM/
+	       mv minimap.sort.1.plus_strand.per.site.csv minimap.sort.1.minus_strand.per.site.csv minimap.sort.1.plus_strand.per.site.5mer.csv minimap.sort.1.minus_strand.per.site.5mer.csv plus_mod_prediction.q3.mis3.del3.MODEL.rrach.q3.mis3.del3.linear.dump.csv minus_mod_prediction.q3.mis3.del3.MODEL.rrach.q3.mis3.del3.linear.dump.csv ${params.resultsDir}/${condition1}/epinanoSVM/
+
+           else
+               /usr/bin/python3 /EpiNano-Epinano1.2.1/Epinano_Variants.py -n ${task.cpus} -R genome.fa -b minimap.sort.1.bam -s /EpiNano-Epinano1.2.1/misc/sam2tsv.jar
+               /usr/bin/python3 /EpiNano-Epinano1.2.1/misc/Slide_Variants.py minimap.sort.1.plus_strand.per.site.csv 5
+	       /usr/bin/python3 /EpiNano-Epinano1.2.1/Epinano_Predict.py --model /EpiNano-Epinano1.2.1/models/rrach.q3.mis3.del3.linear.dump --predict minimap.sort.1.plus_strand.per.site.5mer.csv --columns 8,13,23 --out_prefix plus_mod_prediction
+
+	       mv minimap.sort.1.plus_strand.per.site.csv minimap.sort.1.plus_strand.per.site.5mer.csv plus_mod_prediction.q3.mis3.del3.MODEL.rrach.q3.mis3.del3.linear.dump.csv  ${params.resultsDir}/${condition1}/epinanoSVM/
+           fi
+        else
+          echo "No reads mapped for minimap.1.sort.bam"
+        fi
+
+        if [[ -s minimap.sort.2.plus.sam ]]; then
+           if [[ -s minimap.sort.2.minus.sam ]]; then
+               /usr/bin/python3 /EpiNano-Epinano1.2.1/Epinano_Variants.py -n ${task.cpus} -T g -R genome.fa -b minimap.sort.2.bam -s /EpiNano-Epinano1.2.1/misc/sam2tsv.jar
+               /usr/bin/python3 /EpiNano-Epinano1.2.1/misc/Slide_Variants.py minimap.sort.2.plus_strand.per.site.csv 5
+	       /usr/bin/python3 /EpiNano-Epinano1.2.1/misc/Slide_Variants.py minimap.sort.2.minus_strand.per.site.csv 5
+	       /usr/bin/python3 /EpiNano-Epinano1.2.1/Epinano_Predict.py --model /EpiNano-Epinano1.2.1/models/rrach.q3.mis3.del3.linear.dump --predict minimap.sort.2.plus_strand.per.site.5mer.csv --columns 8,13,23 --out_prefix plus_mod_prediction
+               /usr/bin/python3 /EpiNano-Epinano1.2.1/Epinano_Predict.py --model /EpiNano-Epinano1.2.1/models/rrach.q3.mis3.del3.linear.dump --predict minimap.sort.2.minus_strand.per.site.5mer.csv --columns 8,13,23 --out_prefix minus_mod_prediction
+
+	       mv minimap.sort.2.plus_strand.per.site.csv minimap.sort.2.minus_strand.per.site.csv minimap.sort.2.plus_strand.per.site.5mer.csv minimap.sort.2.minus_strand.per.site.5mer.csv plus_mod_prediction.q3.mis3.del3.MODEL.rrach.q3.mis3.del3.linear.dump.csv minus_mod_prediction.q3.mis3.del3.MODEL.rrach.q3.mis3.del3.linear.dump.csv ${params.resultsDir}/${condition2}/epinanoSVM/
+
+           else
+               /usr/bin/python3 /EpiNano-Epinano1.2.1/Epinano_Variants.py -n ${task.cpus} -R genome.fa -b minimap.sort.2.bam -s /EpiNano-Epinano1.2.1/misc/sam2tsv.jar
+               /usr/bin/python3 /EpiNano-Epinano1.2.1/misc/Slide_Variants.py minimap.sort.2.plus_strand.per.site.csv 5
+	       /usr/bin/python3 /EpiNano-Epinano1.2.1/Epinano_Predict.py --model /EpiNano-Epinano1.2.1/models/rrach.q3.mis3.del3.linear.dump --predict minimap.sort.2.plus_strand.per.site.5mer.csv --columns 8,13,23 --out_prefix plus_mod_prediction
+
+	       mv minimap.sort.2.plus_strand.per.site.csv minimap.sort.2.plus_strand.per.site.5mer.csv plus_mod_prediction.q3.mis3.del3.MODEL.rrach.q3.mis3.del3.linear.dump.csv  ${params.resultsDir}/${condition2}/epinanoSVM/
+           fi
+        else
+          echo "No reads mapped for minimap.2.sort.bam"
+        fi
 
     """
 	else
@@ -618,17 +650,36 @@ process epinanoError {
 		mkdir -p ${params.resultsDir}/epinanoError/minus/
 		mkdir -p ${params.resultsDir}/epinanoError/plus/
 
-		# python3 /EpiNano-Epinano1.2.1/Epinano_Variants.py -R genome.fa -b minimap.sort.1.bam -s /jvarkit/dist/sam2tsv.jar --type g -n ${task.cpus}
-		# python3 /EpiNano-Epinano1.2.1/Epinano_Variants.py -R genome.fa -b minimap.sort.2.bam -s /jvarkit/dist/sam2tsv.jar --type g -n ${task.cpus}
+		samtools view -F16 minimap.sort.1.bam > minimap.sort.1.plus.sam
+                samtools view -f16 minimap.sort.1.bam > minimap.sort.1.minus.sam
+                samtools view -F16 minimap.sort.2.bam > minimap.sort.2.plus.sam
+                samtools view -f16 minimap.sort.2.bam > minimap.sort.2.minus.sam
 
-		python3 /EpiNano-Epinano1.2.1/Epinano_Variants.py -R genome.fa -b minimap.sort.1.bam -s /EpiNano-Epinano1.2.1/misc/sam2tsv.jar --type g -n ${task.cpus}
-		python3 /EpiNano-Epinano1.2.1/Epinano_Variants.py -R genome.fa -b minimap.sort.2.bam -s /EpiNano-Epinano1.2.1/misc/sam2tsv.jar --type g -n ${task.cpus}
+        if [[ -s minimap.sort.1.plus.sam ]]; then
+           if [[ -s minimap.sort.1.minus.sam ]]; then
+               /usr/bin/python3 /EpiNano-Epinano1.2.1/Epinano_Variants.py -R genome.fa -b minimap.sort.1.bam -s /EpiNano-Epinano1.2.1/misc/sam2tsv.jar --type g -n ${task.cpus}
+               /usr/bin/python3 /EpiNano-Epinano1.2.1/misc/Epinano_sumErr.py --kmer 0 --file minimap.sort.1.plus*site.csv --out minimap.sort.1.plus.sumErrOut.csv
+               /usr/bin/python3 /EpiNano-Epinano1.2.1/misc/Epinano_sumErr.py --kmer 0 --file minimap.sort.1.minus*site.csv --out minimap.sort.1.minus.sumErrOut.csv
+           else
+               /usr/bin/python3 /EpiNano-Epinano1.2.1/Epinano_Variants.py -R genome.fa -b minimap.sort.1.bam -s /EpiNano-Epinano1.2.1/misc/sam2tsv.jar -n ${task.cpus}
+               /usr/bin/python3 /EpiNano-Epinano1.2.1/misc/Epinano_sumErr.py --kmer 0 --file minimap.sort.1.plus*site.csv --out minimap.sort.1.plus.sumErrOut.csv
+           fi
+        else
+           "No reads mapped for minimap.sort.1.bam"
+        fi
 
-		
-		python3 /EpiNano-Epinano1.2.1/misc/Epinano_sumErr.py --kmer 0 --file minimap.sort.1.plus*site.csv --out minimap.sort.1.plus.sumErrOut.csv
-		python3 /EpiNano-Epinano1.2.1/misc/Epinano_sumErr.py --kmer 0 --file minimap.sort.2.plus*site.csv --out minimap.sort.2.plus.sumErrOut.csv
-		python3 /EpiNano-Epinano1.2.1/misc/Epinano_sumErr.py --kmer 0 --file minimap.sort.1.minus*site.csv --out minimap.sort.1.minus.sumErrOut.csv
-		python3 /EpiNano-Epinano1.2.1/misc/Epinano_sumErr.py --kmer 0 --file minimap.sort.2.minus*site.csv --out minimap.sort.2.minus.sumErrOut.csv
+        if [[ -s minimap.sort.2.plus.sam ]]; then
+           if [[ -s minimap.sort.1.minus.sam ]]; then
+             /usr/bin/python3 /EpiNano-Epinano1.2.1/Epinano_Variants.py -R genome.fa -b minimap.sort.2.bam -s /EpiNano-Epinano1.2.1/misc/sam2tsv.jar --type g -n ${task.cpus}
+             /usr/bin/python3 /EpiNano-Epinano1.2.1/misc/Epinano_sumErr.py --kmer 0 --file minimap.sort.2.plus*site.csv --out minimap.sort.2.plus.sumErrOut.csv
+             /usr/bin/python3 /EpiNano-Epinano1.2.1/misc/Epinano_sumErr.py --kmer 0 --file minimap.sort.2.minus*site.csv --out minimap.sort.2.minus.sumErrOut.csv
+           else
+             /usr/bin/python3 /EpiNano-Epinano1.2.1/Epinano_Variants.py -R genome.fa -b minimap.sort.2.bam -s /EpiNano-Epinano1.2.1/misc/sam2tsv.jar -n ${task.cpus}
+             /usr/bin/python3 /EpiNano-Epinano1.2.1/misc/Epinano_sumErr.py --kmer 0 --file minimap.sort.2.plus*site.csv --out minimap.sort.2.plus.sumErrOut.csv
+           fi
+        else
+           "No reads mapped for minimap.sort.2.bam"
+        fi
 
 
         if [[ -f minimap.sort.1.plus.sumErrOut.csv && -f minimap.sort.2.plus.sumErrOut.csv ]]; then
@@ -661,17 +712,11 @@ process epinanoError {
     """
 }
 
-// From a single channel for all the alignments to one channel for each condition.
-ni_ref_nanodoc=Channel.create()
-ni_other_nanodoc=Channel.create()
-singleReadFAST5_nanodoc.groupTuple(by:0)
-	.choice( ni_ref_nanodoc, ni_other_nanodoc ) { a -> a[0] == params.reference_condition ? 0 : 1 } 
-
 // RNA modifications detection with nanodoc for each condition
 process nanodoc {
     input:
-	    tuple val('condition1'), val('samples') from ni_ref_nanodoc
-	    tuple val('condition2'), val('samples') from ni_other_nanodoc
+	    val(condition1) from tombo1_nanodoc
+	    val(condition2) from tombo2_nanodoc
 
 		each file('genome.fa') from genome_fasta_nanodoc
 		each file('genome.fa.fai') from genome_fai_nanodoc
@@ -685,10 +730,14 @@ process nanodoc {
     	mkdir -p ${params.resultsDir}/nanodoc/${condition1}_output/
     	mkdir -p ${params.resultsDir}/nanodoc/${condition2}_output/
 
-		/bin/miniconda3/bin/python /nanoDoc/src/nanoDoc.py formatfile -i ${params.resultsDir}/${condition1}/ -o ${params.resultsDir}/nanodoc/${condition1}_output/ -r genome.fa -t ${task.cpus}
-
-		/bin/miniconda3/bin/python /nanoDoc/src/nanoDoc.py formatfile -i ${params.resultsDir}/${condition2}/ -o ${params.resultsDir}/nanodoc/${condition2}_output/ -r genome.fa -t ${task.cpus}
-
+		/bin/miniconda3/bin/python /nanoDoc/src/nanoDoc.py formatfile -i ${params.resultsDir}/${condition1}/ -o . -r genome.fa -t ${task.cpus}
+                mv index.txt ${params.resultsDir}/nanodoc/${condition1}_output/
+                pq_c1=\$(find . -maxdepth 1| grep "\\.pq")
+		mv \$pq_c1 ${params.resultsDir}/nanodoc/${condition1}_output/
+                /bin/miniconda3/bin/python /nanoDoc/src/nanoDoc.py formatfile -i ${params.resultsDir}/${condition2}/ -o . -r genome.fa -t ${task.cpus}
+                mv index.txt ${params.resultsDir}/nanodoc/${condition2}_output/
+                pq_c2=\$(find . -maxdepth 1| grep "\\.pq")
+                mv \$pq_c2 ${params.resultsDir}/nanodoc/${condition2}_output/
 		cat genome.bed | while read line; do chr=\$(echo \$line | cut -d' ' -f1); start=\$(echo \$line | cut -d' ' -f2); end=\$(echo \$line | cut -d' ' -f3); /bin/miniconda3/bin/python /nanoDoc/src/nanoDoc.py analysis -w /nanoDoc/weight5mer/ -p /nanoDoc/param20.txt -r genome.fa -rraw ${params.resultsDir}/nanodoc/${condition2}_output/ -traw ${params.resultsDir}/nanodoc/${condition1}_output/ -chrom \$chr --start \$start --end \$end -o "nanoDoc_results_"\$chr"_"\$start"_"\$end".txt"; done
 
 		mv nanoDoc_results_*.txt ${params.resultsDir}/nanodoc/
@@ -726,7 +775,7 @@ process drummer {
 		mv 	minimap.sortG*.bam ${params.resultsDir}/drummer/
 		mv 	minimap.sortG*.bai ${params.resultsDir}/drummer/
 
-		cd ${params.resultsDir}/drummer/
+ 		cd ${params.resultsDir}/drummer/
 		cp -r /DRUMMER .
         cd ${params.resultsDir}/drummer/DRUMMER/
 
@@ -833,15 +882,15 @@ process xpore2 {
 
     	echo "data:" > ${params.resultsDir}/xpore/xpore.yaml
     	echo "    "${condition1}":" >> ${params.resultsDir}/xpore/xpore.yaml
-		for file in ${params.resultsDir}/${condition1}/${condition1}?; do echo "        rep"\${file##*/}": "\${file}"/xpore/"; done >> ${params.resultsDir}/xpore/xpore.yaml
-    	echo "    "${condition2}":" >> ${params.resultsDir}/xpore/xpore.yaml
-		for file in ${params.resultsDir}/${condition2}/${condition2}?; do echo "        rep"\${file##*/}": "\${file}/xpore/; done >> ${params.resultsDir}/xpore/xpore.yaml
-		echo "" >> ${params.resultsDir}/xpore/xpore.yaml
-		echo "out: "${params.resultsDir}"/xpore" >> ${params.resultsDir}/xpore/xpore.yaml
+        for file in \$(find ${params.resultsDir}/${condition1} -maxdepth 2 | grep "xpore"); do sn=\$(basename \$(dirname \$file)); sd=\$(dirname \$file); echo "      rep"\$sn": "\$sd"/xpore"; done >> ${params.resultsDir}/xpore/xpore.yaml
+        echo "    "${condition2}":" >> ${params.resultsDir}/xpore/xpore.yaml
+        for file in \$(find ${params.resultsDir}/${condition2} -maxdepth 2 | grep "xpore"); do sn=\$(basename \$(dirname \$file));  sd=\$(dirname \$file); echo "      rep"\$sn": "\$sd"/xpore"; done >> ${params.resultsDir}/xpore/xpore.yaml
+        echo "" >> ${params.resultsDir}/xpore/xpore.yaml
+	echo "out: "${params.resultsDir}"/xpore" >> ${params.resultsDir}/xpore/xpore.yaml
 
-		xpore diffmod --config ${params.resultsDir}/xpore/xpore.yaml --n_processes ${task.cpus}
+	xpore diffmod --config ${params.resultsDir}/xpore/xpore.yaml --n_processes ${task.cpus}
 
-		xpore postprocessing --diffmod_dir ${params.resultsDir}/xpore/
+	xpore postprocessing --diffmod_dir ${params.resultsDir}/xpore/
     """
 	else
 	"""
@@ -1006,9 +1055,8 @@ process postprocessing {
 		mkdir -p ${params.resultsDir}/output_bed_files/
 		mkdir -p ${params.resultsDir}/output_statistical/
 
-		Rscript ${params.postprocessingScript} path=${params.resultsDir} genomebed=${params.genomebed} genomegtf=${params.gtf} resultsFolder=${params.resultsDir}/output_bed_files/ mc.cores=${task.cpus} threshold=${params.threshold} pathdena=${params.reference_condition}/dena/prova pathdrummer=drummer pathdifferr=differr pathyanocomp=yanocomp pathmines=${params.reference_condition}/mines pathnanocompore=nanocompore patheligos=eligos/merged pathepinanoError=epinanoError pathepinanoSVM=${params.reference_condition}/epinanoSVM pathxpore=xpore pathnanodoc=nanodoc pathnanom6a=${params.reference_condition}/nanom6a/result_final pathtomboComparison=tomboComparison
-
-		Rscript ${params.statisticalAnalysis} bed_folder=${params.resultsDir}/output_bed_files genomebed=${params.genomebed} genomegtf=${params.gtf} genesbed=${params.genesbed} resultsFolder=${params.resultsDir}/output_statistical/ mc.cores=${task.cpus} peaks=${params.peaksfile} binLength=${params.binLength}
+		Rscript ${params.postprocessingScript} path=${params.resultsDir} genomebed=${params.genomebed} genomegtf=${params.gtf} resultsFolder=${params.resultsDir}/output_bed_files/ mccores=${task.cpus} threshold=${params.threshold} pathdena=${params.reference_condition}/dena/prova pathdrummer=drummer pathdifferr=differr pathyanocomp=yanocomp pathmines=${params.reference_condition}/mines pathnanocompore=nanocompore patheligos=eligos/merged pathepinanoError=epinanoError pathepinanoSVM=${params.reference_condition}/epinanoSVM pathxpore=xpore pathnanodoc=nanodoc pathnanom6a=${params.reference_condition}/nanom6a/result_final pathtomboComparison=tomboComparison
+                Rscript ${params.statisticalAnalysis} bed_folder=${params.resultsDir}/output_bed_files genomebed=${params.genomebed} genomegtf=${params.gtf} genesbed=${params.genesbed} resultsFolder=${params.resultsDir}/output_statistical/ mccores=${task.cpus} peaks=${params.peaksfile} binLength=${params.binLength}
 
     """
 	else

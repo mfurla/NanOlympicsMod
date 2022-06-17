@@ -19,41 +19,43 @@ output_processing <- function(tool, path_folder, output_file, filtering_paramete
   }
   else {
     switch (tool,
-            differr = {output_differr <- function(){if (file.exists(paste0(path_folder, "/", "differrOut.bed"))){
-                                                      data_differr <- read.table(paste0(path_folder, "/", "differrOut.bed"))
-                                                      differr <- data_differr[, c(1:3, 6)]
-                                                      differr$V2 <- differr$V2
-                                                      differr$V3 <- differr$V3
-                                                      differr <- cbind(differr, rep("Mod", nrow(differr)))
-                                                      differr <- cbind(differr, 10**(-data_differr$V5)) # Parameter of filtering is FDR not -log10(FDR)
-                                                      colnames(differr) <- c("Chr", "Start", "End", "Strand", "Status", "FDR")
-                                                      write.table(differr, file = output_file, quote = F, sep = "\t", row.names = F)
+            differr = {output_differr <- function(){if (file.exists(paste0(path_folder, "/", "differrOut.bed")) 
+                                                      && file.info(paste0(path_folder, "/", "differrOut.bed"))$size != 0){
+                                                        data_differr <- read.table(paste0(path_folder, "/", "differrOut.bed"))
+                                                        differr <- data_differr[, c(1:3, 6)]
+                                                        differr$V2 <- differr$V2
+                                                        differr$V3 <- differr$V3
+                                                        differr <- cbind(differr, rep("Mod", nrow(differr)))
+                                                        differr <- cbind(differr, 10**(-data_differr$V5)) # Parameter of filtering is FDR not -log10(FDR)
+                                                        colnames(differr) <- c("Chr", "Start", "End", "Strand", "Status", "FDR")
+                                                        write.table(differr, file = output_file, quote = F, sep = "\t", row.names = F)
                                                     }
                                                       else {message(paste0(tool,"'s output files don't exist."))}
                                                     }
                                                     output_differr()
                       },
-            dena = {output_dena <- function(){if (file.exists(paste0(path_folder, "/", "dena_label.tsv"))){
-                                                data_dena <- read.table(paste0(path_folder, "/", "dena_label.tsv"))
-                                                dena <- data_dena[, c(1,2,2,6,6)]
-                                                dena$V2 <- dena$V2 - 1
-                                                dena$V2.1 <- dena$V2.1
-                                                dena$V6 <- ifelse(!is.nan(dena$V6) & !is.na(dena$V6) & dena$V6 > filtering_parameter, "Mod", "Unmod")
-                                                dena <- dena[which(dena$V6 == "Mod"), ]
-                                                # Creation Edb Database from genome GTF
-                                                EnsDb <- suppressWarnings(suppressMessages(ensDbFromGtf(gtf = genome_gtf)))
-                                                edb <- EnsDb(EnsDb)
-                                                # Lift-over + output bed file
-                                                test_dena <- IRanges(start = dena[,2], end = dena[,3], names = c(dena[,1]))
-                                                coordinate_dena_unlisted <- unlist(transcriptToGenome(test_dena, edb))
-                                                df_dena <- as.data.frame(unname(coordinate_dena_unlisted[,c(0,2,4,5)]))[,c(1:3,5,6,7,8)]
-                                                rownames(df_dena) <- paste0(df_dena[, 6], "_", df_dena[, 7], "_", df_dena[, 5])
-                                                rownames(dena) <- paste0(dena[, 2], "_", dena[, 3], "_", dena[, 1])
-                                                df_dena$Status <- dena[rownames(df_dena), 4]
-                                                df_dena$Mod.Ratio <- dena[rownames(df_dena), 5]
-                                                df_dena_final <- df_dena[,c(1,2,3,4,8,9)]
-                                                colnames(df_dena_final) <- c("Chr", "Start", "End", "Strand", "Status", "Mod.Ratio")
-                                                write.table(df_dena_final, file = output_file, quote = F, sep = "\t", row.names = F)
+            dena = {output_dena <- function(){if (file.exists(paste0(path_folder, "/", "dena_label.tsv"))
+                                                && file.info(paste0(path_folder, "/", "dena_label.tsv"))$size != 0){
+                                                  data_dena <- read.table(paste0(path_folder, "/", "dena_label.tsv"))
+                                                  dena <- data_dena[, c(1,2,2,6,6)]
+                                                  dena$V2 <- dena$V2 - 1
+                                                  dena$V2.1 <- dena$V2.1
+                                                  dena$V6 <- ifelse(!is.nan(dena$V6) & !is.na(dena$V6) & dena$V6 > filtering_parameter, "Mod", "Unmod")
+                                                  dena <- dena[which(dena$V6 == "Mod"), ]
+                                                  # Creation Edb Database from genome GTF
+                                                  EnsDb <- suppressWarnings(suppressMessages(ensDbFromGtf(gtf = genome_gtf)))
+                                                  edb <- EnsDb(EnsDb)
+                                                  # Lift-over + output bed file
+                                                  test_dena <- IRanges(start = dena[,2], end = dena[,3], names = c(dena[,1]))
+                                                  coordinate_dena_unlisted <- unlist(transcriptToGenome(test_dena, edb))
+                                                  df_dena <- as.data.frame(unname(coordinate_dena_unlisted[,c(0,2,4,5)]))[,c(1:3,5,6,7,8)]
+                                                  rownames(df_dena) <- paste0(df_dena[, 6], "_", df_dena[, 7], "_", df_dena[, 5])
+                                                  rownames(dena) <- paste0(dena[, 2], "_", dena[, 3], "_", dena[, 1])
+                                                  df_dena$Status <- dena[rownames(df_dena), 4]
+                                                  df_dena$Mod.Ratio <- dena[rownames(df_dena), 5]
+                                                  df_dena_final <- df_dena[,c(1,2,3,4,8,9)]
+                                                  colnames(df_dena_final) <- c("Chr", "Start", "End", "Strand", "Status", "Mod.Ratio")
+                                                  write.table(df_dena_final, file = output_file, quote = F, sep = "\t", row.names = F)
                                               }
                                                 else {message(paste0(tool,"'s output files don't exist."))}
                                               }
@@ -63,8 +65,10 @@ output_processing <- function(tool, path_folder, output_file, filtering_paramete
                                                       all_data_drummer <- list.files(path = path_folder, pattern = "multiple_comp.txt", recursive = T)
                                                       data_drummer <- data.frame()
                                                       for (file in all_data_drummer) {
-                                                        table <- read.table(paste0(path_folder, "/", file), header = TRUE)
-                                                        data_drummer <- rbind(data_drummer, table)
+                                                        if (file.info(paste0(path_folder, "/", file))$size != 0){
+                                                          table <- read.table(paste0(path_folder, "/", file), header = TRUE)
+                                                          data_drummer <- rbind(data_drummer, table)
+                                                        }
                                                       }
                                                       drummer <- data_drummer[, c(1,2,2,5,5)]
                                                       drummer$position <- drummer$position - 1
@@ -79,71 +83,77 @@ output_processing <- function(tool, path_folder, output_file, filtering_paramete
                                                     }
                                                     output_drummer()
                       },
-            yanocomp = {output_yanocomp <- function(){if (file.exists(paste0(path_folder, "/", "yanocomp_output.bed"))){
-                                                        data_yanocomp <- read.table(paste0(path_folder, "/", "yanocomp_output.bed"))
-                                                        yanocomp <- data_yanocomp[, c(1:3,6,9,9)]
-                                                        yanocomp$V9 <- rep("Mod", length(yanocomp$V9))
-                                                        colnames(yanocomp) <- c("Chr", "Start", "End", "Strand", "Status", "Score")
-                                                        write.table(yanocomp, file = output_file, quote = F, sep = "\t", row.names = F)
+            yanocomp = {output_yanocomp <- function(){if (file.exists(paste0(path_folder, "/", "yanocomp_output.bed"))
+                                                        && file.info(paste0(path_folder, "/", "yanocomp_output.bed"))$size != 0){
+                                                          data_yanocomp <- read.table(paste0(path_folder, "/", "yanocomp_output.bed"))
+                                                          yanocomp <- data_yanocomp[, c(1:3,6,9,9)]
+                                                          yanocomp$V9 <- rep("Mod", length(yanocomp$V9))
+                                                          colnames(yanocomp) <- c("Chr", "Start", "End", "Strand", "Status", "Score")
+                                                          write.table(yanocomp, file = output_file, quote = F, sep = "\t", row.names = F)
                                                       }
                                                         else {message(paste0(tool,"'s output files don't exist."))}
                                                       }
                                                       output_yanocomp()
                         },
-            nanocompore = {output_nanocompore <- function(){if (file.exists(paste0(path_folder, "/", "outnanocompore_results.tsv"))){
-                                                              data_nanocompore <- read.table(paste0(path_folder, "/", "outnanocompore_results.tsv"), header = TRUE)
-                                                              nanocompore <- data_nanocompore[, c(2,3,3,5,7,13,7)]
-                                                              nanocompore$genomicPos <- nanocompore$genomicPos - 1
-                                                              nanocompore$genomicPos.1 <- nanocompore$genomicPos.1
-                                                              nanocompore$Logit_LOR <- ifelse(nanocompore$Logit_LOR == "NC", NA, nanocompore$Logit_LOR)
-                                                              nanocompore$GMM_logit_pvalue <- ifelse(!is.nan(nanocompore$GMM_logit_pvalue) & !is.na(nanocompore$GMM_logit_pvalue) &
-                                                                                                     !is.nan(nanocompore$Logit_LOR) & !is.na(nanocompore$Logit_LOR) & 
-                                                                                                      nanocompore$GMM_logit_pvalue < filtering_parameter & 
-                                                                                                      abs(as.numeric(nanocompore$Logit_LOR)) > 0.5, "Mod", "Unmod")
-                                                              nanocompore <- nanocompore[which(nanocompore$GMM_logit_pvalue == "Mod"), ]
-                                                              colnames(nanocompore) <- c("Chr", "Start", "End", "Strand", "Status", "Logit_LOR", "Pvalue")
-                                                              write.table(nanocompore, file = output_file, quote = F, sep = "\t", row.names = F)
+            nanocompore = {output_nanocompore <- function(){if (file.exists(paste0(path_folder, "/", "outnanocompore_results.tsv"))
+                                                              && file.info(paste0(path_folder, "/", "outnanocompore_results.tsv"))$size != 0){
+                                                                data_nanocompore <- read.table(paste0(path_folder, "/", "outnanocompore_results.tsv"), header = TRUE)
+                                                                nanocompore <- data_nanocompore[, c(2,3,3,5,7,13,7)]
+                                                                nanocompore$genomicPos <- nanocompore$genomicPos - 1
+                                                                nanocompore$genomicPos.1 <- nanocompore$genomicPos.1
+                                                                nanocompore$Logit_LOR <- ifelse(nanocompore$Logit_LOR == "NC", NA, nanocompore$Logit_LOR)
+                                                                nanocompore$GMM_logit_pvalue <- ifelse(!is.nan(nanocompore$GMM_logit_pvalue) & !is.na(nanocompore$GMM_logit_pvalue) &
+                                                                                                       !is.nan(nanocompore$Logit_LOR) & !is.na(nanocompore$Logit_LOR) & 
+                                                                                                        nanocompore$GMM_logit_pvalue < filtering_parameter & 
+                                                                                                        abs(as.numeric(nanocompore$Logit_LOR)) > 0.5, "Mod", "Unmod")
+                                                                nanocompore <- nanocompore[which(nanocompore$GMM_logit_pvalue == "Mod"), ]
+                                                                nanocompore <- nanocompore[,c(1,2,3,4,5,7)]
+                                                                colnames(nanocompore) <- c("Chr", "Start", "End", "Strand", "Status", "Pvalue")
+                                                                write.table(nanocompore, file = output_file, quote = F, sep = "\t", row.names = F)
                                                             }
                                                               else {message(paste0(tool,"'s output files don't exist."))}
                                                             }
                                                             output_nanocompore()
                         },
-            eligos = {output_eligos <- function(){if (file.exists(paste0(path_folder, "/", "minimap.sortG.1_vs_minimap.sortG.2_on_genome_combine.txt"))){
-                                                    data_eligos <- read.table(paste0(path_folder, "/", "minimap.sortG.1_vs_minimap.sortG.2_on_genome_combine.txt"), header = TRUE)
-                                                    eligos <- data_eligos[, c(1:4,18,16,18)]
-                                                    eligos$start_loc <- eligos$start_loc
-                                                    eligos$end_loc <- eligos$end_loc
-                                                    eligos$adjPval <- ifelse(!is.nan(eligos$adjPval) & !is.na(eligos$adjPval) & 
-                                                                              !is.nan(eligos$oddR) & !is.na(eligos$oddR) &
-                                                                              eligos$adjPval < filtering_parameter & eligos$oddR > 1.2, "Mod", "Unmod")
-                                                    eligos <- eligos[which(eligos$adjPval == "Mod"), ]
-                                                    colnames(eligos) <- c("Chr", "Start", "End", "Strand", "Status", "oddR", "Padj")
-                                                    write.table(eligos, file = output_file, quote = F, sep = "\t", row.names = F)
+            eligos = {output_eligos <- function(){if (file.exists(paste0(path_folder, "/", "minimap.sortG.1_vs_minimap.sortG.2_on_genome_combine.txt"))
+                                                    && file.info(paste0(path_folder, "/", "minimap.sortG.1_vs_minimap.sortG.2_on_genome_combine.txt"))$size != 0){
+                                                      data_eligos <- read.table(paste0(path_folder, "/", "minimap.sortG.1_vs_minimap.sortG.2_on_genome_combine.txt"), header = TRUE)
+                                                      eligos <- data_eligos[, c(1:4,18,16,18)]
+                                                      eligos$start_loc <- eligos$start_loc
+                                                      eligos$end_loc <- eligos$end_loc
+                                                      eligos$adjPval <- ifelse(!is.nan(eligos$adjPval) & !is.na(eligos$adjPval) & 
+                                                                                !is.nan(eligos$oddR) & !is.na(eligos$oddR) &
+                                                                                eligos$adjPval < filtering_parameter & eligos$oddR > 1.2, "Mod", "Unmod")
+                                                      eligos <- eligos[which(eligos$adjPval == "Mod"), ]
+                                                      eligos <- eligos[,c(1,2,3,4,5,7)]
+                                                      colnames(eligos) <- c("Chr", "Start", "End", "Strand", "Status", "Padj")
+                                                      write.table(eligos, file = output_file, quote = F, sep = "\t", row.names = F)
                                                   }
                                                     else {message(paste0(tool,"'s output files don't exist."))}
                                                   }
                                                   output_eligos()
             },
-            mines = {output_mines <- function(){if (file.exists(paste0(path_folder, "/", "m6A_output_filename.bed"))){
-                                                  data_mines <- read.table(paste0(path_folder, "/", "m6A_output_filename.bed")) 
-                                                  mines <- data_mines[, c(1:3,7,7)]
-                                                  mines$V2 <- mines$V2
-                                                  mines$V3 <- mines$V3
-                                                  mines$V7 <- rep("Mod", length(mines$V7))
-                                                  # Creation Edb Database from genome GTF
-                                                  EnsDb <- suppressWarnings(suppressMessages(ensDbFromGtf(gtf = genome_gtf)))
-                                                  edb <- EnsDb(EnsDb)
-                                                  # Lift-over + output bed
-                                                  test_mines <- IRanges(start = mines[,2], end = mines[,3], names = c(mines[,1]))
-                                                  coordinate_mines_unlisted <- unlist(transcriptToGenome(test_mines, edb))
-                                                  df_mines <- as.data.frame(unname(coordinate_mines_unlisted[,c(0,2,4,5)]))[,c(1:3,5,6,7,8)]
-                                                  rownames(df_mines) <- paste0(df_mines[, 6], "_", df_mines[, 7], "_", df_mines[, 5])
-                                                  rownames(mines) <- paste0(mines[, 2], "_", mines[, 3], "_", mines[, 1])
-                                                  df_mines$Status <- mines[rownames(df_mines), 4]
-                                                  df_mines$Ratiomod<- mines[rownames(df_mines), 5]
-                                                  df_mines_final <- df_mines[,c(1,2,3,4,8)]
-                                                  colnames(df_mines_final) <- c("Chr", "Start", "End", "Strand", "Status")
-                                                  write.table(df_mines_final, file = output_file, quote = F, sep = "\t", row.names = F)
+            mines = {output_mines <- function(){if (file.exists(paste0(path_folder, "/", "m6A_output_filename.bed"))
+                                                  && file.info(paste0(path_folder, "/", "m6A_output_filename.bed"))$size != 0){
+                                                    data_mines <- read.table(paste0(path_folder, "/", "m6A_output_filename.bed")) 
+                                                    mines <- data_mines[, c(1:3,7,7)]
+                                                    mines$V2 <- mines$V2
+                                                    mines$V3 <- mines$V3
+                                                    mines$V7 <- rep("Mod", length(mines$V7))
+                                                    # Creation Edb Database from genome GTF
+                                                    EnsDb <- suppressWarnings(suppressMessages(ensDbFromGtf(gtf = genome_gtf)))
+                                                    edb <- EnsDb(EnsDb)
+                                                    # Lift-over + output bed
+                                                    test_mines <- IRanges(start = mines[,2], end = mines[,3], names = c(mines[,1]))
+                                                    coordinate_mines_unlisted <- unlist(transcriptToGenome(test_mines, edb))
+                                                    df_mines <- as.data.frame(unname(coordinate_mines_unlisted[,c(0,2,4,5)]))[,c(1:3,5,6,7,8)]
+                                                    rownames(df_mines) <- paste0(df_mines[, 6], "_", df_mines[, 7], "_", df_mines[, 5])
+                                                    rownames(mines) <- paste0(mines[, 2], "_", mines[, 3], "_", mines[, 1])
+                                                    df_mines$Status <- mines[rownames(df_mines), 4]
+                                                    df_mines$Ratiomod<- mines[rownames(df_mines), 5]
+                                                    df_mines_final <- df_mines[,c(1,2,3,4,8)]
+                                                    colnames(df_mines_final) <- c("Chr", "Start", "End", "Strand", "Status")
+                                                    write.table(df_mines_final, file = output_file, quote = F, sep = "\t", row.names = F)
                                                 }
                                                   else {message(paste0(tool,"'s output files don't exist."))}
                                                 }
@@ -185,9 +195,9 @@ output_processing <- function(tool, path_folder, output_file, filtering_paramete
                                                                     data_epinanosvm <- rbind(data_epinanosvm_plus, data_epinanosvm_minus)
                                                              }
                                                                else if (file.exists(paste0(path_folder, "/", "plus_mod_prediction.q3.mis3.del3.MODEL.rrach.q3.mis3.del3.linear.dump.csv"))){
-                                                                  data_epinanosvm <- read.table(paste0(path_folder, "/", "plus_mod_prediction.q3.mis3.del3.MODEL.rrach.q3.mis3.del3.linear.dump.csv"), header = TRUE, sep = ",")
+                                                                  data_epinanosvm <- read.table(paste0(path_folder, "/", "plus_mod_prediction.q3.mis3.del3.MODEL.rrach.q3.mis3.del3.linear.dump.csv"), sep = ",")
                                                              }
-                                                               else {data_epinanosvm <- read.table(paste0(path_folder, "/", "minus_mod_prediction.q3.mis3.del3.MODEL.rrach.q3.mis3.del3.linear.dump.csv"), header = TRUE, sep = ",")}
+                                                               else {data_epinanosvm <- read.table(paste0(path_folder, "/", "minus_mod_prediction.q3.mis3.del3.MODEL.rrach.q3.mis3.del3.linear.dump.csv"), sep = ",")}
 
                                                              epinanosvm <- data.frame("Chr" = data_epinanosvm$V3,
                                                                                       "Start" = sapply(data_epinanosvm$V2, function(x){return(strsplit(x, split = "\\-")[[1]][1])}),
@@ -203,23 +213,24 @@ output_processing <- function(tool, path_folder, output_file, filtering_paramete
                                                            }
                                                            output_epinano_svm()
             },
-            xpore = {output_xpore <- function(){if (file.exists(paste0(path_folder, "/", "diffmod.table"))){
-                                                  data_xpore <- read.table(paste0(path_folder, "/", "diffmod.table"), header = TRUE, sep=",") 
-                                                  xpore <- data.frame("GeneID" = data_xpore$id,
-                                                                      "Start" = data_xpore$position - 1,
-                                                                      "End" = data_xpore$position,
-                                                                      "Status" = p.adjust(data_xpore$pval_KD_vs_WT, method = "BH"), # Adviced to use FDR instead of pvalue
-                                                                      "FDR" = p.adjust(data_xpore$pval_KD_vs_WT, method = "BH")
-                                                                      )
-                                                  xpore$Status <- ifelse(!is.nan(xpore$Status) & !is.na(xpore$Status) & xpore$Status < filtering_parameter, "Mod", "Unmod")
-                                                  xpore <- xpore[which(xpore$Status == "Mod"), ]
-                                                  # Add strand and chromosome comparing gene ID with genome bed file
-                                                  genome <- read.table(genome_bed, header = FALSE, sep="\t")
-                                                  rownames(genome) <- genome[,4]
-                                                  xpore$Strand <- genome[xpore$GeneID, "V6"]
-                                                  xpore$Chr <- genome[xpore$GeneID, "V1"]
-                                                  xpore <- xpore[,c(7,2,3,6,4,5)]
-                                                  write.table(xpore, file = output_file, quote = F, sep = "\t", row.names = F)
+            xpore = {output_xpore <- function(){if (file.exists(paste0(path_folder, "/", "diffmod.table"))
+                                                  && file.info(paste0(path_folder, "/", "diffmod.table"))$size != 0){
+                                                    data_xpore <- read.table(paste0(path_folder, "/", "diffmod.table"), header = TRUE, sep=",") 
+                                                    xpore <- data.frame("GeneID" = data_xpore$id,
+                                                                        "Start" = data_xpore$position - 1,
+                                                                        "End" = data_xpore$position,
+                                                                        "Status" = p.adjust(data_xpore$pval_KD_vs_WT, method = "BH"), # Adviced to use FDR instead of pvalue
+                                                                        "FDR" = p.adjust(data_xpore$pval_KD_vs_WT, method = "BH")
+                                                                        )
+                                                    xpore$Status <- ifelse(!is.nan(xpore$Status) & !is.na(xpore$Status) & xpore$Status < filtering_parameter, "Mod", "Unmod")
+                                                    xpore <- xpore[which(xpore$Status == "Mod"), ]
+                                                    # Add strand and chromosome comparing gene ID with genome bed file
+                                                    genome <- read.table(genome_bed, header = FALSE, sep="\t")
+                                                    rownames(genome) <- genome[,4]
+                                                    xpore$Strand <- genome[xpore$GeneID, "V6"]
+                                                    xpore$Chr <- genome[xpore$GeneID, "V1"]
+                                                    xpore <- xpore[,c(7,2,3,6,4,5)]
+                                                    write.table(xpore, file = output_file, quote = F, sep = "\t", row.names = F)
                                                 }
                                                   else {message(paste0(tool,"'s output files don't exist."))}
                                                 }
@@ -227,20 +238,26 @@ output_processing <- function(tool, path_folder, output_file, filtering_paramete
             },
             nanodoc = {output_nanodoc <- function(){if (length(list.files(path = path_folder, pattern = "*.txt")) != 0){
                                                       txt_files_ls <- list.files(path = path_folder, pattern="*.txt")
-                                                      txt_files_df <- lapply(txt_files_ls, function(x) {table <- read.table(file = paste0(path_folder, "/", x), sep = "\t")
-                                                                                                        table <- cbind(table, x) 
-                                                                                                        table})
-                                                      data_nanodoc <- do.call("rbind", lapply(txt_files_df, as.data.frame))
-                                                      nanodoc <- data_nanodoc[,c(1,1,12,12,13)] 
-                                                      nanodoc$V1 <- nanodoc$V1 - 1
-                                                      nanodoc$V1.1 <- nanodoc$V1.1
-                                                      nanodoc$V12 <- ifelse(!is.nan(nanodoc$V12) & !is.na(nanodoc$V12) & nanodoc$V12 > filtering_parameter, "Mod", "Unmod")
-                                                      nanodoc <- nanodoc[which(nanodoc$V12 == "Mod"), ]
-                                                      nanodoc$x <- str_extract(nanodoc$x, "(chr)[0-9]+|[IVX]{1,3}")
-                                                      nanodoc$strand <- rep("*", nrow(nanodoc))
-                                                      nanodoc <- nanodoc[,c(5,1,2,6,3,4)]
-                                                      colnames(nanodoc) <- c("Chr", "Start", "End", "Strand", "Status", "Score")
-                                                      write.table(nanodoc, file = output_file, quote = F, sep = "\t", row.names = F)
+                                                      txt_files_df <- lapply(txt_files_ls, function(x) {if file.info(paste0(path_folder, "/", x))$size != 0){
+                                                                                                          table <- read.table(file = paste0(path_folder, "/", x), sep = "\t")
+                                                                                                          table <- cbind(table, x) 
+                                                                                                          table
+                                                                                                          } 
+                                                                                                        })
+                                                      if (nrow(txt_files_df) != 0){
+                                                        data_nanodoc <- do.call("rbind", lapply(txt_files_df, as.data.frame))
+                                                        nanodoc <- data_nanodoc[,c(1,1,12,12,13)] 
+                                                        nanodoc$V1 <- nanodoc$V1 - 1
+                                                        nanodoc$V1.1 <- nanodoc$V1.1
+                                                        nanodoc$V12 <- ifelse(!is.nan(nanodoc$V12) & !is.na(nanodoc$V12) & nanodoc$V12 > filtering_parameter, "Mod", "Unmod")
+                                                        nanodoc <- nanodoc[which(nanodoc$V12 == "Mod"), ]
+                                                        nanodoc$x <- str_extract(nanodoc$x, "(chr)[0-9]+|[IVX]{1,3}")
+                                                        nanodoc$strand <- rep("*", nrow(nanodoc))
+                                                        nanodoc <- nanodoc[,c(5,1,2,6,3,4)]
+                                                        colnames(nanodoc) <- c("Chr", "Start", "End", "Strand", "Status", "Score")
+                                                        write.table(nanodoc, file = output_file, quote = F, sep = "\t", row.names = F)
+                                                      }
+                                                        else {message(paste0(tool,"'s output files don't exist."))}
                                                     }
                                                       else {message(paste0(tool,"'s output files don't exist."))}
                                                     }
@@ -249,81 +266,85 @@ output_processing <- function(tool, path_folder, output_file, filtering_paramete
             nanom6a = {output_nanom6a <- function(){if (length(list.files(path = path_folder, pattern = "ratio.*.tsv")) != 0){
                                                       files <- list.files(path = path_folder, pattern = "ratio.*.tsv")
                                                       for (file in files){
-                                                        data_nanom6a <- read.table(paste0(path_folder, "/", file), sep="\t", fill = T, col.names = 1:100)
-                                                        nanom6a <- data.frame()
-                                                        for (row in 1:nrow(data_nanom6a)) {
-                                                          for (col in 1:length(data_nanom6a[row, ])) {
-                                                            if (col == 1){
-                                                              chr <- strsplit(data_nanom6a[row, col], split = "\\|")[[1]][2]
-                                                              geneID <- strsplit(data_nanom6a[row, col], split = "\\|")[[1]][1]
-                                                            }
-                                                            else {
-                                                              if(data_nanom6a[row, col] != "" && !is.na(data_nanom6a[row, col])){
-                                                                start <- as.numeric(strsplit(data_nanom6a[row, col], split = "\\|")[[1]][1]) - 1
-                                                                end <- as.numeric(strsplit(data_nanom6a[row, col], split = "\\|")[[1]][1])
-                                                                mod_ratio <- strsplit(data_nanom6a[row, col], split = "\\|")[[1]][4]
-                                                                x <- c(chr, geneID, start, end, mod_ratio, mod_ratio)
-                                                                nanom6a <- rbind(nanom6a, x)
+                                                        if (file.info(paste0(path_folder, "/", file))$size != 0){
+                                                          data_nanom6a <- read.table(paste0(path_folder, "/", file), sep="\t", fill = T, col.names = 1:100)
+                                                          nanom6a <- data.frame()
+                                                          for (row in 1:nrow(data_nanom6a)) {
+                                                            for (col in 1:length(data_nanom6a[row, ])) {
+                                                              if (col == 1){
+                                                                chr <- strsplit(data_nanom6a[row, col], split = "\\|")[[1]][2]
+                                                                geneID <- strsplit(data_nanom6a[row, col], split = "\\|")[[1]][1]
+                                                              }
+                                                              else {
+                                                                if(data_nanom6a[row, col] != "" && !is.na(data_nanom6a[row, col])){
+                                                                  start <- as.numeric(strsplit(data_nanom6a[row, col], split = "\\|")[[1]][1]) - 1
+                                                                  end <- as.numeric(strsplit(data_nanom6a[row, col], split = "\\|")[[1]][1])
+                                                                  mod_ratio <- strsplit(data_nanom6a[row, col], split = "\\|")[[1]][4]
+                                                                  x <- c(chr, geneID, start, end, mod_ratio, mod_ratio)
+                                                                  nanom6a <- rbind(nanom6a, x)
+                                                                }
                                                               }
                                                             }
                                                           }
+                                                          # Add strand comparing gene ID with genome bed file
+                                                          genome <- read.table(genome_bed, header = FALSE, sep="\t")
+                                                          rownames(genome) <- genome[,4]
+                                                          nanom6a$Strand <- genome[nanom6a[,2], "V6"]
+                                                          nanom6a <- nanom6a[,c(1,3,4,7)]
+                                                          colnames(nanom6a) <- c("Chr", "Start", "End", "Strand")
+                                                          nanom6a$Status <- rep("Mod", nrow(nanom6a))
+                                                          write.table(nanom6a, file = paste0(output_file, "_", file, ".bed"), quote = F, sep = "\t", row.names = F)
                                                         }
-                                                        # Add strand comparing gene ID with genome bed file
-                                                        genome <- read.table(genome_bed, header = FALSE, sep="\t")
-                                                        rownames(genome) <- genome[,4]
-                                                        nanom6a$Strand <- genome[nanom6a[,2], "V6"]
-                                                        nanom6a <- nanom6a[,c(1,3,4,7)]
-                                                        colnames(nanom6a) <- c("Chr", "Start", "End", "Strand")
-                                                        nanom6a$Status <- rep("Mod", nrow(nanom6a))
-                                                        write.table(nanom6a, file = paste0(output_file, "_", file, ".bed"), quote = F, sep = "\t", row.names = F)
-                                                        }
+                                                          else {message(paste0(tool,"'s output files is empty."))}
+                                                      }
                                                     }
                                                       else {message(paste0(tool,"'s output files don't exist."))}
                                                     }
                                                     output_nanom6a()
             },
-            tomboComparison = {output_tomboComparison <- function(){if (file.exists(paste0(path_folder, "/", "sample.level_samp_comp_detect.statistic.plus.wig"))){
-                                                              data_tombo <- read.table(paste0(path_folder, "/", "sample.level_samp_comp_detect.statistic.plus.wig"), fill = T, header = T)
-                                                              tombo <- data.frame()
-                                                              for (row in 1:nrow(data_tombo)) {
-                                                                for (col in 1:2) {
-                                                                  if (is.na(as.numeric(data_tombo[row,col]))){
-                                                                    if (col == 2){
-                                                                      transcriptID <- str_extract(data_tombo[row,col], "[A-Z0-9]{6,}(-[A-Z])?(-mRNA)?")
+            tomboComparison = {output_tomboComparison <- function(){if (file.exists(paste0(path_folder, "/", "sample.level_samp_comp_detect.statistic.plus.wig"))
+                                                                      && file.info(paste0(path_folder, "/", "sample.level_samp_comp_detect.statistic.plus.wig"))$size != 0){
+                                                                        data_tombo <- read.table(paste0(path_folder, "/", "sample.level_samp_comp_detect.statistic.plus.wig"), fill = T, header = T)
+                                                                        tombo <- data.frame()
+                                                                        for (row in 1:nrow(data_tombo)) {
+                                                                          for (col in 1:2) {
+                                                                            if (is.na(as.numeric(data_tombo[row,col]))){
+                                                                              if (col == 2){
+                                                                                transcriptID <- str_extract(data_tombo[row,col], "[A-Z0-9]{6,}(-[A-Z])?(-mRNA)?")
+                                                                              }
+                                                                            }
+                                                                            else if (col == 1){
+                                                                              start <- as.numeric(data_tombo[row, col]) - 1 
+                                                                              end <- as.numeric(data_tombo[row, col])
+                                                                            }
+                                                                            else if (col == 2){
+                                                                              pvalue <- data_tombo[row, col]
+                                                                              x <- c(transcriptID, start, end, pvalue, pvalue)
+                                                                              tombo <- rbind(tombo, x)
+                                                                            }
+                                                                          }
+                                                                        }
+                                                                        tombo[,4] <- ifelse(!is.nan(tombo[,4]) & !is.na(tombo[,4]) & 10**(-as.numeric(tombo[,4])) < filtering_parameter, "Mod", "Unmod")
+                                                                        tombo <- tombo[which(tombo[,4] == "Mod"), ]
+                                                                        # Creation Edb Database from genome GTF
+                                                                        EnsDb <- suppressWarnings(suppressMessages(ensDbFromGtf(gtf = genome_gtf)))
+                                                                        edb <- EnsDb(EnsDb)
+                                                                        # Lift-over + Creation of bed file
+                                                                        test_tombo <- IRanges(start = as.numeric(tombo[,2]), end = as.numeric(tombo[,3]), names = c(tombo[,1]))
+                                                                        coordinate_tombo_unlisted <- unlist(transcriptToGenome(test_tombo, edb))
+                                                                        df_tombo <- as.data.frame(unname(coordinate_tombo_unlisted[,c(0,2,4,5)]))
+                                                                        df_tombo <- df_tombo[,c(1:3,5,6,7,8)]
+                                                                        rownames(df_tombo) <- paste0(df_tombo[, 6], "_", df_tombo[, 7], "_", df_tombo[, 5])
+                                                                        rownames(tombo) <- paste0(tombo[, 2], "_", tombo[, 3], "_", tombo[, 1])
+                                                                        df_tombo$Status <- tombo[rownames(df_tombo), 4]
+                                                                        df_tombo$Pvalue <- 10**(-as.numeric(tombo[rownames(df_tombo), 5])) # Parameter of filtering is Pvalue not -log10(Pvalue)
+                                                                        df_tombo_final <- df_tombo[,c(1,2,3,4,8,9)]
+                                                                        colnames(df_tombo_final) <- c("Chr", "Start", "End", "Strand", "Status", "Pvalue")
+                                                                        write.table(df_tombo_final, file = output_file, quote = F, sep = "\t", row.names = F)
                                                                     }
-                                                                  }
-                                                                  else if (col == 1){
-                                                                    start <- as.numeric(data_tombo[row, col]) - 1 
-                                                                    end <- as.numeric(data_tombo[row, col])
-                                                                  }
-                                                                  else if (col == 2){
-                                                                    pvalue <- data_tombo[row, col]
-                                                                    x <- c(transcriptID, start, end, pvalue, pvalue)
-                                                                    tombo <- rbind(tombo, x)
-                                                                  }
-                                                                }
-                                                              }
-                                                              tombo[,4] <- ifelse(!is.nan(tombo[,4]) & !is.na(tombo[,4]) & 10**(-as.numeric(tombo[,4])) < filtering_parameter, "Mod", "Unmod")
-                                                              tombo <- tombo[which(tombo[,4] == "Mod"), ]
-                                                              # Creation Edb Database from genome GTF
-                                                              EnsDb <- suppressWarnings(suppressMessages(ensDbFromGtf(gtf = genome_gtf)))
-                                                              edb <- EnsDb(EnsDb)
-                                                              # Lift-over + Creation of bed file
-                                                              test_tombo <- IRanges(start = as.numeric(tombo[,2]), end = as.numeric(tombo[,3]), names = c(tombo[,1]))
-                                                              coordinate_tombo_unlisted <- unlist(transcriptToGenome(test_tombo, edb))
-                                                              df_tombo <- as.data.frame(unname(coordinate_tombo_unlisted[,c(0,2,4,5)]))
-                                                              df_tombo <- df_tombo[,c(1:3,5,6,7,8)]
-                                                              rownames(df_tombo) <- paste0(df_tombo[, 6], "_", df_tombo[, 7], "_", df_tombo[, 5])
-                                                              rownames(tombo) <- paste0(tombo[, 2], "_", tombo[, 3], "_", tombo[, 1])
-                                                              df_tombo$Status <- tombo[rownames(df_tombo), 4]
-                                                              df_tombo$Pvalue <- 10**(-as.numeric(tombo[rownames(df_tombo), 5])) # Parameter of filtering is Pvalue not -log10(Pvalue)
-                                                              df_tombo_final <- df_tombo[,c(1,2,3,4,8,9)]
-                                                              colnames(df_tombo_final) <- c("Chr", "Start", "End", "Strand", "Status", "Pvalue")
-                                                              write.table(df_tombo_final, file = output_file, quote = F, sep = "\t", row.names = F)
-                                                            }
-                                                              else {message(paste0(tool,"'s output files don't exist."))}
-                                                            }
-                                                            output_tomboComparison()
+                                                                      else {message(paste0(tool,"'s output files don't exist."))}
+                                                                    }
+                                                                    output_tomboComparison()
             },
             stop("Enter a valid tool as input!")
     )}
