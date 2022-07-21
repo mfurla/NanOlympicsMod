@@ -162,15 +162,15 @@ process minimap2 {
 }
 
 // From a single channel for all the alignments to one channel for each condition.
-ni_ref_minimap2Merge=Channel.create()
+ni_test_minimap2Merge=Channel.create()
 ni_other_minimap2Merge=Channel.create()
 minimap2_minimap2Merge.groupTuple(by:0)
-	.choice( ni_ref_minimap2Merge, ni_other_minimap2Merge ) { a -> a[0] == params.reference_condition ? 0 : 1 } 
+	.choice( ni_test_minimap2Merge, ni_other_minimap2Merge ) { a -> a[0] == params.test_condition ? 0 : 1 } 
 
 // From multiple to single bam files.
 process minimap2Merge {
     input:
-	    tuple val('condition1'), file('minimap.filt.sortT.1.*.bam'), file('minimap.sortG.1.*.bam') from ni_ref_minimap2Merge
+	    tuple val('condition1'), file('minimap.filt.sortT.1.*.bam'), file('minimap.sortG.1.*.bam') from ni_test_minimap2Merge
 	    tuple val('condition2'), file('minimap.filt.sortT.2.*.bam'), file('minimap.sortG.2.*.bam') from ni_other_minimap2Merge
     
     output:
@@ -237,15 +237,15 @@ process minimap2Merge {
 }
 
 // From a single channel for all the alignments to one channel for each condition.
-ni_ref_tombo1=Channel.create()
+ni_test_tombo1=Channel.create()
 ni_other_tombo1=Channel.create()
 singleReadFAST5_tombo1.groupTuple(by:0)
-	.choice( ni_ref_tombo1, ni_other_tombo1 ) { a -> a[0] == params.reference_condition ? 0 : 1 } 
+	.choice( ni_test_tombo1, ni_other_tombo1 ) { a -> a[0] == params.test_condition ? 0 : 1 } 
 
 // Resquiggle for each condition.
 process tombo1 {
     input:
-		tuple val('condition1'), val('samples') from ni_ref_tombo1
+		tuple val('condition1'), val('samples') from ni_test_tombo1
 		tuple val('condition2'), val('samples') from ni_other_tombo1
 
 		each file('transcriptome.fa') from transcriptome_fasta_tombo1
@@ -373,12 +373,12 @@ process nanom6a {
 
 		for prob in ${params.nanom6AP};do /nanom6A_2021_10_22/bin/predict_sites --cpu ${task.cpus} -i ${params.resultsDir}/${condition1}/nanom6a/result -o ${params.resultsDir}/${condition1}/nanom6a/result_final -r transcriptome.fa -g genome.fa -b ${params.genes2transcripts} --model /nanom6A_2021_10_22/bin/model/ --proba \$prob; done
 
-		mkdir -p ${params.resultsDir}/${condition2}/nanom6a/
+#		mkdir -p ${params.resultsDir}/${condition2}/nanom6a/
 
-		find ${params.resultsDir}/${condition2}/ -name "*.fast5" > ${params.resultsDir}/${condition2}/nanom6a/files.txt
-		/nanom6A_2021_10_22/bin/extract_raw_and_feature_fast --cpu=${task.cpus} --fl=${params.resultsDir}/${condition2}/nanom6a/files.txt -o ${params.resultsDir}/${condition2}/nanom6a/result --clip=10 --basecall_group ${params.tombo_slot} --basecall_subgroup ${params.tombo_subslot}
+#		find ${params.resultsDir}/${condition2}/ -name "*.fast5" > ${params.resultsDir}/${condition2}/nanom6a/files.txt
+#		/nanom6A_2021_10_22/bin/extract_raw_and_feature_fast --cpu=${task.cpus} --fl=${params.resultsDir}/${condition2}/nanom6a/files.txt -o ${params.resultsDir}/${condition2}/nanom6a/result --clip=10 --basecall_group ${params.tombo_slot} --basecall_subgroup ${params.tombo_subslot}
 
-		for prob in ${params.nanom6AP};do /nanom6A_2021_10_22/bin/predict_sites --cpu ${task.cpus} -i ${params.resultsDir}/${condition2}/nanom6a/result -o ${params.resultsDir}/${condition2}/nanom6a/result_final -r transcriptome.fa -g genome.fa -b ${params.genes2transcripts} --model /nanom6A_2021_10_22/bin/model/ --proba \$prob; done
+#		for prob in ${params.nanom6AP};do /nanom6A_2021_10_22/bin/predict_sites --cpu ${task.cpus} -i ${params.resultsDir}/${condition2}/nanom6a/result -o ${params.resultsDir}/${condition2}/nanom6a/result_final -r transcriptome.fa -g genome.fa -b ${params.genes2transcripts} --model /nanom6A_2021_10_22/bin/model/ --proba \$prob; done
     """
 	else
 	"""
@@ -388,15 +388,15 @@ process nanom6a {
 }
 
 // From a single channel for all the alignments to one channel for each condition.
-ni_ref=Channel.create()
+ni_test=Channel.create()
 ni_other=Channel.create()
 minimap2_differr.groupTuple(by:0)
-	.choice( ni_ref, ni_other ) { a -> a[0] == params.reference_condition ? 0 : 1 } 
+	.choice( ni_test, ni_other ) { a -> a[0] == params.test_condition ? 0 : 1 } 
 
 // RNA modifications detection with differr
 process differr {
     input:
-	    tuple val('condition1'), file('minimap.filt.sortT.1.*.bam'), file('minimap.filt.sortT.1.*.bam.bai'), file('minimap.sortG.1.*.bam'), file('minimap.sortG.1.*.bam.bai') from ni_ref
+	    tuple val('condition1'), file('minimap.filt.sortT.1.*.bam'), file('minimap.filt.sortT.1.*.bam.bai'), file('minimap.sortG.1.*.bam'), file('minimap.sortG.1.*.bam.bai') from ni_test
 	    tuple val('condition2'), file('minimap.filt.sortT.2.*.bam'), file('minimap.filt.sortT.2.*.bam.bai'), file('minimap.sortG.2.*.bam'), file('minimap.sortG.2.*.bam.bai') from ni_other
 
 		each file('genome.fa') from genome_fasta_differr
@@ -426,15 +426,15 @@ process differr {
 }
 
 // From a single channel for all the alignments to one channel for each condition.
-ni_ref_eligos=Channel.create()
+ni_test_eligos=Channel.create()
 ni_other_eligos=Channel.create()
 minimap2_eligos.groupTuple(by:0)
-	.choice( ni_ref_eligos, ni_other_eligos ) { a -> a[0] == params.reference_condition ? 0 : 1 } 
+	.choice( ni_test_eligos, ni_other_eligos ) { a -> a[0] == params.test_condition ? 0 : 1 } 
 
 // RNA modifications detection with eligos
 process eligos {
     input:
-	    tuple val('condition1'), file('minimap.sortG.1.*.bam'), file('minimap.sortG.1.*.bam.bai') from ni_ref_eligos
+	    tuple val('condition1'), file('minimap.sortG.1.*.bam'), file('minimap.sortG.1.*.bam.bai') from ni_test_eligos
 	    tuple val('condition2'), file('minimap.sortG.2.*.bam'), file('minimap.sortG.2.*.bam.bai') from ni_other_eligos
 
 		each file('genome.fa') from genome_fasta_eligos
@@ -502,7 +502,7 @@ process mines {
 
 		python3 /MINES/cDNA_MINES.py --fraction_modified ${params.resultsDir}/${condition1}/mines/output_filename.fraction_modified_reads.plus.wig.bed --coverage ${params.resultsDir}/${condition1}/tomboDenovo/output_filename.coverage.plus.bedgraph --output ${params.resultsDir}/${condition1}/mines/m6A_output_filename.bed --ref transcriptome.fa --kmer_models /MINES/Final_Models/names.txt
 		
-		python3 /MINES/cDNA_MINES.py --fraction_modified ${params.resultsDir}/${condition2}/mines/output_filename.fraction_modified_reads.plus.wig.bed --coverage ${params.resultsDir}/${condition2}/tomboDenovo/output_filename.coverage.plus.bedgraph --output ${params.resultsDir}/${condition2}/mines/m6A_output_filename.bed --ref transcriptome.fa --kmer_models /MINES/Final_Models/names.txt
+#		python3 /MINES/cDNA_MINES.py --fraction_modified ${params.resultsDir}/${condition2}/mines/output_filename.fraction_modified_reads.plus.wig.bed --coverage ${params.resultsDir}/${condition2}/tomboDenovo/output_filename.coverage.plus.bedgraph --output ${params.resultsDir}/${condition2}/mines/m6A_output_filename.bed --ref transcriptome.fa --kmer_models /MINES/Final_Models/names.txt
 
    """
 	else
@@ -537,15 +537,15 @@ process dena {
 
 		python3 /DENA/step4_predict/LSTM_predict.py -i ${params.resultsDir}/${condition1}/dena/ -m /DENA/denaModels/ -o ${params.resultsDir}/${condition1}/dena/ -p "dena_label"
 
-		mkdir -p ${params.resultsDir}/${condition2}/dena/
+		# mkdir -p ${params.resultsDir}/${condition2}/dena/
 
-		python3 /DENA/step4_predict/LSTM_extract.py get_pos --fasta transcriptome.fa --motif 'RRACH' --output ${params.resultsDir}/${condition2}/dena/candidate_predict_pos.txt
+		# python3 /DENA/step4_predict/LSTM_extract.py get_pos --fasta transcriptome.fa --motif 'RRACH' --output ${params.resultsDir}/${condition2}/dena/candidate_predict_pos.txt
 
-		python3 /DENA/step4_predict/LSTM_extract.py predict --fast5 ${params.resultsDir}/${condition2} --corr_grp ${params.tombo_slot} --bam minimap.filt.sort.2.bam --sites ${params.resultsDir}/${condition2}/dena/candidate_predict_pos.txt --label "dena_label" --windows 2 2 --processes ${task.cpus}
+		# python3 /DENA/step4_predict/LSTM_extract.py predict --fast5 ${params.resultsDir}/${condition2} --corr_grp ${params.tombo_slot} --bam minimap.filt.sort.2.bam --sites ${params.resultsDir}/${condition2}/dena/candidate_predict_pos.txt --label "dena_label" --windows 2 2 --processes ${task.cpus}
 
-		mv *_tmp ${params.resultsDir}/${condition2}/dena/
+		# mv *_tmp ${params.resultsDir}/${condition2}/dena/
 
-		python3 /DENA/step4_predict/LSTM_predict.py -i ${params.resultsDir}/${condition2}/dena/ -m /DENA/denaModels/ -o ${params.resultsDir}/${condition2}/dena/ -p "dena_label"
+		# python3 /DENA/step4_predict/LSTM_predict.py -i ${params.resultsDir}/${condition2}/dena/ -m /DENA/denaModels/ -o ${params.resultsDir}/${condition2}/dena/ -p "dena_label"
     """
 	else
 	"""
@@ -600,26 +600,26 @@ process epinanoSVM {
           echo "No reads mapped for minimap.1.sort.bam"
         fi
 
-        if [[ -s minimap.sort.2.plus.sam ]]; then
-           if [[ -s minimap.sort.2.minus.sam ]]; then
-               /usr/bin/python3 /EpiNano-Epinano1.2.1/Epinano_Variants.py -n ${task.cpus} -T g -R genome.fa -b minimap.sort.2.bam -s /EpiNano-Epinano1.2.1/misc/sam2tsv.jar
-               /usr/bin/python3 /EpiNano-Epinano1.2.1/misc/Slide_Variants.py minimap.sort.2.plus_strand.per.site.csv 5
-	       /usr/bin/python3 /EpiNano-Epinano1.2.1/misc/Slide_Variants.py minimap.sort.2.minus_strand.per.site.csv 5
-	       /usr/bin/python3 /EpiNano-Epinano1.2.1/Epinano_Predict.py --model /EpiNano-Epinano1.2.1/models/rrach.q3.mis3.del3.linear.dump --predict minimap.sort.2.plus_strand.per.site.5mer.csv --columns 8,13,23 --out_prefix plus_mod_prediction
-               /usr/bin/python3 /EpiNano-Epinano1.2.1/Epinano_Predict.py --model /EpiNano-Epinano1.2.1/models/rrach.q3.mis3.del3.linear.dump --predict minimap.sort.2.minus_strand.per.site.5mer.csv --columns 8,13,23 --out_prefix minus_mod_prediction
+#        if [[ -s minimap.sort.2.plus.sam ]]; then
+#           if [[ -s minimap.sort.2.minus.sam ]]; then
+#               /usr/bin/python3 /EpiNano-Epinano1.2.1/Epinano_Variants.py -n ${task.cpus} -T g -R genome.fa -b minimap.sort.2.bam -s /EpiNano-Epinano1.2.1/misc/sam2tsv.jar
+#               /usr/bin/python3 /EpiNano-Epinano1.2.1/misc/Slide_Variants.py minimap.sort.2.plus_strand.per.site.csv 5
+#	       /usr/bin/python3 /EpiNano-Epinano1.2.1/misc/Slide_Variants.py minimap.sort.2.minus_strand.per.site.csv 5
+#	       /usr/bin/python3 /EpiNano-Epinano1.2.1/Epinano_Predict.py --model /EpiNano-Epinano1.2.1/models/rrach.q3.mis3.del3.linear.dump --predict minimap.sort.2.plus_strand.per.site.5mer.csv --columns 8,13,23 --out_prefix plus_mod_prediction
+#               /usr/bin/python3 /EpiNano-Epinano1.2.1/Epinano_Predict.py --model /EpiNano-Epinano1.2.1/models/rrach.q3.mis3.del3.linear.dump --predict minimap.sort.2.minus_strand.per.site.5mer.csv --columns 8,13,23 --out_prefix minus_mod_prediction
 
-	       mv minimap.sort.2.plus_strand.per.site.csv minimap.sort.2.minus_strand.per.site.csv minimap.sort.2.plus_strand.per.site.5mer.csv minimap.sort.2.minus_strand.per.site.5mer.csv plus_mod_prediction.q3.mis3.del3.MODEL.rrach.q3.mis3.del3.linear.dump.csv minus_mod_prediction.q3.mis3.del3.MODEL.rrach.q3.mis3.del3.linear.dump.csv ${params.resultsDir}/${condition2}/epinanoSVM/
+#	       mv minimap.sort.2.plus_strand.per.site.csv minimap.sort.2.minus_strand.per.site.csv minimap.sort.2.plus_strand.per.site.5mer.csv minimap.sort.2.minus_strand.per.site.5mer.csv plus_mod_prediction.q3.mis3.del3.MODEL.rrach.q3.mis3.del3.linear.dump.csv minus_mod_prediction.q3.mis3.del3.MODEL.rrach.q3.mis3.del3.linear.dump.csv ${params.resultsDir}/${condition2}/epinanoSVM/
 
-           else
-               /usr/bin/python3 /EpiNano-Epinano1.2.1/Epinano_Variants.py -n ${task.cpus} -R genome.fa -b minimap.sort.2.bam -s /EpiNano-Epinano1.2.1/misc/sam2tsv.jar
-               /usr/bin/python3 /EpiNano-Epinano1.2.1/misc/Slide_Variants.py minimap.sort.2.plus_strand.per.site.csv 5
-	       /usr/bin/python3 /EpiNano-Epinano1.2.1/Epinano_Predict.py --model /EpiNano-Epinano1.2.1/models/rrach.q3.mis3.del3.linear.dump --predict minimap.sort.2.plus_strand.per.site.5mer.csv --columns 8,13,23 --out_prefix plus_mod_prediction
+        #    else
+        #        /usr/bin/python3 /EpiNano-Epinano1.2.1/Epinano_Variants.py -n ${task.cpus} -R genome.fa -b minimap.sort.2.bam -s /EpiNano-Epinano1.2.1/misc/sam2tsv.jar
+        #        /usr/bin/python3 /EpiNano-Epinano1.2.1/misc/Slide_Variants.py minimap.sort.2.plus_strand.per.site.csv 5
+	       # /usr/bin/python3 /EpiNano-Epinano1.2.1/Epinano_Predict.py --model /EpiNano-Epinano1.2.1/models/rrach.q3.mis3.del3.linear.dump --predict minimap.sort.2.plus_strand.per.site.5mer.csv --columns 8,13,23 --out_prefix plus_mod_prediction
 
-	       mv minimap.sort.2.plus_strand.per.site.csv minimap.sort.2.plus_strand.per.site.5mer.csv plus_mod_prediction.q3.mis3.del3.MODEL.rrach.q3.mis3.del3.linear.dump.csv  ${params.resultsDir}/${condition2}/epinanoSVM/
-           fi
-        else
-          echo "No reads mapped for minimap.2.sort.bam"
-        fi
+	       # mv minimap.sort.2.plus_strand.per.site.csv minimap.sort.2.plus_strand.per.site.5mer.csv plus_mod_prediction.q3.mis3.del3.MODEL.rrach.q3.mis3.del3.linear.dump.csv  ${params.resultsDir}/${condition2}/epinanoSVM/
+        #    fi
+        # else
+        #   echo "No reads mapped for minimap.2.sort.bam"
+        # fi
 
     """
 	else
@@ -669,7 +669,7 @@ process epinanoError {
         fi
 
         if [[ -s minimap.sort.2.plus.sam ]]; then
-           if [[ -s minimap.sort.1.minus.sam ]]; then
+           if [[ -s minimap.sort.2.minus.sam ]]; then
              /usr/bin/python3 /EpiNano-Epinano1.2.1/Epinano_Variants.py -R genome.fa -b minimap.sort.2.bam -s /EpiNano-Epinano1.2.1/misc/sam2tsv.jar --type g -n ${task.cpus}
              /usr/bin/python3 /EpiNano-Epinano1.2.1/misc/Epinano_sumErr.py --kmer 0 --file minimap.sort.2.plus*site.csv --out minimap.sort.2.plus.sumErrOut.csv
              /usr/bin/python3 /EpiNano-Epinano1.2.1/misc/Epinano_sumErr.py --kmer 0 --file minimap.sort.2.minus*site.csv --out minimap.sort.2.minus.sumErrOut.csv
@@ -749,15 +749,15 @@ process nanodoc {
 }
 
 // From a single channel for all the alignments to one channel for each condition.
-ni_ref_drummer=Channel.create()
+ni_test_drummer=Channel.create()
 ni_other_drummer=Channel.create()
 minimap2_drummer.groupTuple(by:0)
-	.choice( ni_ref_drummer, ni_other_drummer ) { a -> a[0] == params.reference_condition ? 0 : 1 } 
+	.choice( ni_test_drummer, ni_other_drummer ) { a -> a[0] == params.test_condition ? 0 : 1 } 
 
 // RNA modifications detection with drummer
 process drummer {
     input:
-	    tuple val('condition1'), file('minimap.filt.sortT.1.*.bam'), file('minimap.filt.sortT.1.*.bam.bai'), file('minimap.sortG.1.*.bam'), file('minimap.sortG.1.*.bam.bai') from ni_ref_drummer
+	    tuple val('condition1'), file('minimap.filt.sortT.1.*.bam'), file('minimap.filt.sortT.1.*.bam.bai'), file('minimap.sortG.1.*.bam'), file('minimap.sortG.1.*.bam.bai') from ni_test_drummer
 	    tuple val('condition2'), file('minimap.filt.sortT.2.*.bam'), file('minimap.filt.sortT.2.*.bam.bai'), file('minimap.sortG.2.*.bam'), file('minimap.sortG.2.*.bam.bai') from ni_other_drummer
 
     output:
@@ -862,15 +862,15 @@ process xpore1 {
 }
 
 // From a single channel for all the alignments to one channel for each condition.
-ni_ref_xpore2=Channel.create()
+ni_test_xpore2=Channel.create()
 ni_other_xpore2=Channel.create()
 xpore1_xpore2.groupTuple(by:0)
-	.choice( ni_ref_xpore2, ni_other_xpore2 ) { a -> a[0] == params.reference_condition ? 0 : 1 } 
+	.choice( ni_test_xpore2, ni_other_xpore2 ) { a -> a[0] == params.test_condition ? 0 : 1 } 
 
 // RNA modifications detection with xpore
 process xpore2 {
     input:
-	    tuple val('condition1'), val('sample1') from ni_ref_xpore2
+	    tuple val('condition1'), val('sample1') from ni_test_xpore2
 	    tuple val('condition2'), val('sample2') from ni_other_xpore2
     output:
 	    val('flagxpore') into xpore_postprocessing
@@ -924,15 +924,15 @@ process nanocompore1 {
 
 
 // From a single channel for all the alignments to one channel for each condition
-ni_ref_nanocompore2=Channel.create()
+ni_test_nanocompore2=Channel.create()
 ni_other_nanocompore2=Channel.create()
 nanocompore1_nanocompore2.groupTuple(by:0)
-	.choice( ni_ref_nanocompore2, ni_other_nanocompore2 ) { a -> a[0] == params.reference_condition ? 0 : 1 } 
+	.choice( ni_test_nanocompore2, ni_other_nanocompore2 ) { a -> a[0] == params.test_condition ? 0 : 1 } 
 
 // RNA modifications detection with nanocompore
 process nanocompore2 {
     input:
-	    tuple val('condition1'), val('sample1'), file('out_eventalign_collapse.1.*.tsv'), file('out_eventalign_collapse.1.*.tsv.idx') from ni_ref_nanocompore2
+	    tuple val('condition1'), val('sample1'), file('out_eventalign_collapse.1.*.tsv'), file('out_eventalign_collapse.1.*.tsv.idx') from ni_test_nanocompore2
 	    tuple val('condition2'), val('sample2'), file('out_eventalign_collapse.2.*.tsv'), file('out_eventalign_collapse.2.*.tsv.idx') from ni_other_nanocompore2
 
 		each file('transcriptome.fa') from transcriptome_fasta_nanocompore2
@@ -997,15 +997,15 @@ process yanocomp1 {
 }
 
 // From a single channel for all the alignments to one channel for each condition
-ni_ref_yanocomp2=Channel.create()
+ni_test_yanocomp2=Channel.create()
 ni_other_yanocomp2=Channel.create()
 yanocomp1_yanocomp2.groupTuple(by:0)
-	.choice( ni_ref_yanocomp2, ni_other_yanocomp2 ) { a -> a[0] == params.reference_condition ? 0 : 1 } 
+	.choice( ni_test_yanocomp2, ni_other_yanocomp2 ) { a -> a[0] == params.test_condition ? 0 : 1 } 
 
 // RNA modifications detection with yanocomp
 process yanocomp2 {
     input:
-	    tuple val('condition1'), file('outputT.1.*.hdf5'), file('outputG.1.*.hdf5') from ni_ref_yanocomp2
+	    tuple val('condition1'), file('outputT.1.*.hdf5'), file('outputG.1.*.hdf5') from ni_test_yanocomp2
 	    tuple val('condition2'), file('outputT.2.*.hdf5'), file('outputG.2.*.hdf5') from ni_other_yanocomp2
 
     output:
@@ -1055,7 +1055,7 @@ process postprocessing {
 		mkdir -p ${params.resultsDir}/output_bed_files/
 		mkdir -p ${params.resultsDir}/output_statistical/
 
-		Rscript ${params.postprocessingScript} path=${params.resultsDir} genomebed=${params.genomebed} genomegtf=${params.gtf} resultsFolder=${params.resultsDir}/output_bed_files/ mccores=${task.cpus} threshold=${params.threshold} pathdena=${params.reference_condition}/dena/prova pathdrummer=drummer pathdifferr=differr pathyanocomp=yanocomp pathmines=${params.reference_condition}/mines pathnanocompore=nanocompore patheligos=eligos/merged pathepinanoError=epinanoError pathepinanoSVM=${params.reference_condition}/epinanoSVM pathxpore=xpore pathnanodoc=nanodoc pathnanom6a=${params.reference_condition}/nanom6a/result_final pathtomboComparison=tomboComparison
+		Rscript ${params.postprocessingScript} path=${params.resultsDir} genomebed=${params.genomebed} genomegtf=${params.gtf} resultsFolder=${params.resultsDir}/output_bed_files/ mccores=${task.cpus} threshold=${params.threshold} pathdena=${params.test_condition}/dena/prova pathdrummer=drummer pathdifferr=differr pathyanocomp=yanocomp pathmines=${params.test_condition}/mines pathnanocompore=nanocompore patheligos=eligos/merged pathepinanoError=epinanoError pathepinanoSVM=${params.test_condition}/epinanoSVM pathxpore=xpore pathnanodoc=nanodoc pathnanom6a=${params.test_condition}/nanom6a/result_final pathtomboComparison=tomboComparison
                 Rscript ${params.statisticalAnalysis} bed_folder=${params.resultsDir}/output_bed_files genomebed=${params.genomebed} genomegtf=${params.gtf} genesbed=${params.genesbed} resultsFolder=${params.resultsDir}/output_statistical/ mccores=${task.cpus} peaks=${params.peaksfile} binLength=${params.binLength}
 
     """
