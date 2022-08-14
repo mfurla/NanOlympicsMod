@@ -97,8 +97,14 @@ process fastq {
     if(params.fastq)
     """
     	mkdir -p ${params.resultsDir}/${condition}/${sample}/FASTQ/
-    	poretools fastq --group ${params.fast5_slot_id} ${params.resultsDir}/${condition}/${sample}/FAST5/*/ > ${params.resultsDir}/${condition}/${sample}/FASTQ/singleReadsFASTQ.fastq
-
+    	
+	fast5_dir=\$(find ${params.resultsDir}/${condition}/${sample}/FAST5/ -maxdepth 1 -type d)
+        if [ -f ${params.resultsDir}/${condition}/${sample}/FASTQ/singleReadsFASTQ.fastq ] ; then
+          rm ${params.resultsDir}/${condition}/${sample}/FASTQ/singleReadsFASTQ.fastq
+        fi
+        for d in \$fast5_dir; do
+          poretools fastq --group ${params.fast5_slot_id} \$d >> ${params.resultsDir}/${condition}/${sample}/FASTQ/singleReadsFASTQ.fastq
+        done
 		mkdir -p ${params.resultsDir}/${condition}/FASTQ/
 		mkdir -p ${params.resultsDir}/${condition}/FASTQ/${sample}/
 		ln -sf ${params.resultsDir}/${condition}/${sample}/FASTQ/ ${params.resultsDir}/${condition}/FASTQ/${sample}/
