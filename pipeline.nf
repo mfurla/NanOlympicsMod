@@ -97,13 +97,12 @@ process fastq {
     if(params.fastq)
     """
     	mkdir -p ${params.resultsDir}/${condition}/${sample}/FASTQ/
-    	
-	fast5_dir=\$(find ${params.resultsDir}/${condition}/${sample}/FAST5/ -maxdepth 1 -type d)
+        fast5_dir=\$(find ${params.resultsDir}/${condition}/${sample}/FAST5/ -maxdepth 1 -type d)
         if [ -f ${params.resultsDir}/${condition}/${sample}/FASTQ/singleReadsFASTQ.fastq ] ; then
           rm ${params.resultsDir}/${condition}/${sample}/FASTQ/singleReadsFASTQ.fastq
         fi
         for d in \$fast5_dir; do
-          poretools fastq --group ${params.fast5_slot_id} \$d >> ${params.resultsDir}/${condition}/${sample}/FASTQ/singleReadsFASTQ.fastq
+    	  poretools fastq --group ${params.fast5_slot_id} \$d >> ${params.resultsDir}/${condition}/${sample}/FASTQ/singleReadsFASTQ.fastq
         done
 		mkdir -p ${params.resultsDir}/${condition}/FASTQ/
 		mkdir -p ${params.resultsDir}/${condition}/FASTQ/${sample}/
@@ -242,48 +241,56 @@ process minimap2Merge {
 	"""
 }
 
-// From a single channel for all the alignments to one channel for each condition.
-ni_test_tombo1=Channel.create()
-ni_other_tombo1=Channel.create()
-singleReadFAST5_tombo1.groupTuple(by:0)
-	.choice( ni_test_tombo1, ni_other_tombo1 ) { a -> a[0] == params.test_condition ? 0 : 1 } 
-
-// Resquiggle for each condition.
+// Resquiggle for each condition and sample.
 process tombo1 {
     input:
-		tuple val('condition1'), val('samples') from ni_test_tombo1
-		tuple val('condition2'), val('samples') from ni_other_tombo1
+		tuple val(condition), val(sample) from singleReadFAST5_tombo1
 
 		each file('transcriptome.fa') from transcriptome_fasta_tombo1
 		each file('transcriptome.fa.fai') from transcriptome_fai_tombo1
 
     output:
-		tuple val(condition1) into condition1_tombo1_tombo2
-		tuple val(condition2) into condition2_tombo1_tombo2
-
-		tuple val(condition1) into condition1_tombo1_tombo3
-		tuple val(condition2) into condition2_tombo1_tombo3
-
-		tuple val(condition1) into condition1_tombo1_nanom6a
-		tuple val(condition2) into condition2_tombo1_nanom6a
-
-		tuple val(condition1) into condition1_tombo1_dena
-		tuple val(condition2) into condition2_tombo1_dena
-
-                tuple val(condition1) into tombo1_nanodoc
-                tuple val(condition2) into tombo2_nanodoc
+		tuple val(condition), val(sample) into tombo1_tombo2
+		tuple val(condition), val(sample) into tombo1_tombo3
+		tuple val(condition), val(sample) into tombo1_nanom6a
+		tuple val(condition), val(sample) into tombo1_dena
+                tuple val(condition), val(sample) into tombo1_nanodoc_all
     script:
     if(params.tombo1)
     """
-		/bin/miniconda3/bin/tombo resquiggle ${params.resultsDir}/${condition1}/ --ignore-read-locks --overwrite --basecall-group ${params.fast5_slot} transcriptome.fa --processes ${task.cpus} --fit-global-scale --include-event-stdev --failed-reads-filename ${params.resultsDir}/${condition1}/failedReads.txt
-
-		/bin/miniconda3/bin/tombo resquiggle ${params.resultsDir}/${condition2}/ --ignore-read-locks --overwrite --basecall-group ${params.fast5_slot} transcriptome.fa --processes ${task.cpus} --fit-global-scale --include-event-stdev --failed-reads-filename ${params.resultsDir}/${condition2}/failedReads.txt
+		/bin/miniconda3/bin/tombo resquiggle ${params.resultsDir}/${condition}/${sample}/ --ignore-read-locks --overwrite --basecall-group ${params.fast5_slot} transcriptome.fa --processes ${task.cpus} --fit-global-scale --include-event-stdev --failed-reads-filename ${params.resultsDir}/${condition}/${sample}/failedReads.txt
     """
 	else
 	"""
 		echo "Skipped"
     """
 }
+
+// From a single channel for all tombo1 outputs to one channel for each condition.
+condition1_tombo1_tombo2=Channel.create()
+condition2_tombo1_tombo2=Channel.create()
+tombo1_tombo2.groupTuple(by:0)
+        .choice( condition1_tombo1_tombo2, condition2_tombo1_tombo2 ) { a -> a[0] == params.test_condition ? 0 : 1 }
+
+condition1_tombo1_tombo3=Channel.create()
+condition2_tombo1_tombo3=Channel.create()
+tombo1_tombo3.groupTuple(by:0)
+        .choice( condition1_tombo1_tombo3, condition2_tombo1_tombo3 ) { a -> a[0] == params.test_condition ? 0 : 1 }
+
+condition1_tombo1_nanom6a=Channel.create()
+condition2_tombo1_nanom6a=Channel.create()
+tombo1_nanom6a.groupTuple(by:0)
+        .choice( condition1_tombo1_nanom6a, condition2_tombo1_nanom6a ) { a -> a[0] == params.test_condition ? 0 : 1 }
+
+condition1_tombo1_dena=Channel.create()
+condition2_tombo1_dena=Channel.create()
+tombo1_dena.groupTuple(by:0)
+        .choice( condition1_tombo1_dena, condition2_tombo1_dena ) { a -> a[0] == params.test_condition ? 0 : 1 }
+
+tombo1_nanodoc=Channel.create()
+tombo2_nanodoc=Channel.create()
+tombo1_nanodoc_all.groupTuple(by:0)
+        .choice( tombo1_nanodoc, tombo2_nanodoc ) { a -> a[0] == params.test_condition ? 0 : 1 }
 
 // RNA modifications detection with Tombo denovo
 process tombo2 {
