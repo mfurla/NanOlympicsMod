@@ -98,6 +98,7 @@ names(threshold_default) <- c("dena_output.bed", "differr_output.bed", "drummer_
 
 for (y in files) {
   x <- basename(y)
+  cat(y)
   recall <- c()
   precision <- c()
   # Extraction of bed file + convertion to granges
@@ -129,9 +130,9 @@ for (y in files) {
     #hist(positive, main = paste0(x, " - Scores for positive peaks"))
     #hist(negative, main = paste0(x, " - Scores for negative peaks"))
     #dev.off()
-    pr <- pr.curve(scores.class0 = unname(positive), scores.class1 = unname(negative), curve=T)
+    pr <- pr.curve(scores.class0 = unname(positive), scores.class1 = unname(negative), curve=T, rand.compute=TRUE)
     pdf(file = paste0(resultsFolder, x,"_PRcurve.pdf"), width = 8, height = 8)
-    plot(pr, main = paste0(x, " Precision-Recall curve"))
+    plot(pr, main = paste0(x, " Precision-Recall curve"), rand.plot=TRUE)
     dev.off()
     listPRcurves[[x]] <- pr
     # Plot "manual" PR curve
@@ -223,9 +224,9 @@ new_matrix <- cbind(matrix_nanom6A, max_thr)
 posit <- new_matrix[which(new_matrix[, "GS"] == 1), "max_thr"]
 negat <- new_matrix[which(new_matrix[, "GS"] == 0), "max_thr"]
 
-pr <- pr.curve(posit, negat, curve = T)
+pr <- pr.curve(posit, negat, curve = T, rand.compute=TRUE)
 pdf(file = paste0(resultsFolder, "nanom6A_PRcurve.pdf"), width = 8, height = 8)
-plot(pr, main = "nanom6A Precision-Recall curve")
+plot(pr, main = "nanom6A Precision-Recall curve", rand.plot=TRUE)
 dev.off()
 listPRcurves[["nanom6A_output.bed"]] <- pr
 #par(mfrow = c(2, 1))
@@ -242,7 +243,7 @@ col <- c(7,8,420,153,31,100,33,47,53,62,400,454,28,10)
 pdf(file = paste0(resultsFolder, "Summary_PR_curves.pdf"), width = 8, height = 8)
 for (x in 1:length(listPRcurves)) {
   if (x == 1){
-    plot(listPRcurves[[x]], color = colors()[col[x]], main = "Summary PR curves")
+    plot(listPRcurves[[x]], color = colors()[col[x]], main = "Summary PR curves", rand.plot=TRUE)
   }
   else{
     plot(listPRcurves[[x]], add = T, color = colors()[col[x]], main = "Summary PR curves")
