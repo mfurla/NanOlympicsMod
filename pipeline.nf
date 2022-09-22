@@ -315,11 +315,11 @@ process tombo2 {
 
 		/bin/miniconda3/bin/tombo text_output browser_files --fast5-basedirs ${params.resultsDir}/${condition1}/ --statistics-filename ${params.resultsDir}/${condition1}/tomboDenovo/Stats_Filename.tombo.stats --browser-file-basename ${params.resultsDir}/${condition1}/tomboDenovo/output_filename --file-types statistic fraction dampened_fraction coverage valid_coverage signal 
 
-    	mkdir -p ${params.resultsDir}/${condition2}/tomboDenovo
+    	#mkdir -p ${params.resultsDir}/${condition2}/tomboDenovo
 
-		/bin/miniconda3/bin/tombo detect_modifications de_novo --per-read-statistics-basename ${params.resultsDir}/${condition1}/tomboDenovo/Per_read_Stats_Filename --fast5-basedirs ${params.resultsDir}/${condition2}/ --statistics-file-basename ${params.resultsDir}/${condition2}/tomboDenovo/Stats_Filename
+	#	/bin/miniconda3/bin/tombo detect_modifications de_novo --per-read-statistics-basename ${params.resultsDir}/${condition1}/tomboDenovo/Per_read_Stats_Filename --fast5-basedirs ${params.resultsDir}/${condition2}/ --statistics-file-basename ${params.resultsDir}/${condition2}/tomboDenovo/Stats_Filename
 
-		/bin/miniconda3/bin/tombo text_output browser_files --fast5-basedirs ${params.resultsDir}/${condition2}/ --statistics-filename ${params.resultsDir}/${condition2}/tomboDenovo/Stats_Filename.tombo.stats --browser-file-basename ${params.resultsDir}/${condition2}/tomboDenovo/output_filename --file-types statistic fraction dampened_fraction coverage valid_coverage signal 
+	#	/bin/miniconda3/bin/tombo text_output browser_files --fast5-basedirs ${params.resultsDir}/${condition2}/ --statistics-filename ${params.resultsDir}/${condition2}/tomboDenovo/Stats_Filename.tombo.stats --browser-file-basename ${params.resultsDir}/${condition2}/tomboDenovo/output_filename --file-types statistic fraction dampened_fraction coverage valid_coverage signal 
     """
 	else
 	"""
@@ -507,11 +507,11 @@ process mines {
     if(params.mines)
     """
 		mkdir -p ${params.resultsDir}/${condition1}/mines/
-		mkdir -p ${params.resultsDir}/${condition2}/mines/
+#		mkdir -p ${params.resultsDir}/${condition2}/mines/
 
 		wig2bed < ${params.resultsDir}/${condition1}/tomboDenovo/output_filename.fraction_modified_reads.plus.wig > ${params.resultsDir}/${condition1}/mines/output_filename.fraction_modified_reads.plus.wig.bed
 		
-		wig2bed < ${params.resultsDir}/${condition2}/tomboDenovo/output_filename.fraction_modified_reads.plus.wig > ${params.resultsDir}/${condition2}/mines/output_filename.fraction_modified_reads.plus.wig.bed
+#		wig2bed < ${params.resultsDir}/${condition2}/tomboDenovo/output_filename.fraction_modified_reads.plus.wig > ${params.resultsDir}/${condition2}/mines/output_filename.fraction_modified_reads.plus.wig.bed
 
 		python3 /MINES/cDNA_MINES.py --fraction_modified ${params.resultsDir}/${condition1}/mines/output_filename.fraction_modified_reads.plus.wig.bed --coverage ${params.resultsDir}/${condition1}/tomboDenovo/output_filename.coverage.plus.bedgraph --output ${params.resultsDir}/${condition1}/mines/m6A_output_filename.bed --ref transcriptome.fa --kmer_models /MINES/Final_Models/names.txt
 		
