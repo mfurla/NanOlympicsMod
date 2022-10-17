@@ -310,7 +310,7 @@ output_processing <- function(tool, path_folder, output_file, filtering_paramete
                                                     }
                                                     output_nanom6a()
             },
-            tomboComparison = {output_tomboComparisono <- function(){if (file.exists(paste0(path_folder, "/", "sample.level_samp_comp_detect.statistic.plus.wig"))
+            tomboComparison = {output_tomboComparison <- function(){if (file.exists(paste0(path_folder, "/", "sample.level_samp_comp_detect.statistic.plus.wig"))
                                                                       && file.info(paste0(path_folder, "/", "sample.level_samp_comp_detect.statistic.plus.wig"))$size != 0){
                                                                         data_tombo <- read.table(paste0(path_folder, "/", "sample.level_samp_comp_detect.statistic.plus.wig"), fill = T, header = T)
                                                                         tombo <- data.frame()
