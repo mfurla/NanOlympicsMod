@@ -12,6 +12,7 @@ library(IRanges)
 library(ensembldb)
 library(GenomicRanges)
 library(stringr)
+library(Biostrings)
 
 output_processing <- function(tool, path_folder, output_file, filtering_parameter, genome_gtf, genome_bed){
   if (!file.exists(path_folder)){
@@ -117,7 +118,9 @@ output_processing <- function(tool, path_folder, output_file, filtering_paramete
                         },
             eligos = {output_eligos <- function(){if (file.exists(paste0(path_folder, "/", "minimap.sortG.1_vs_minimap.sortG.2_on_genome_combine.txt"))
                                                     && file.info(paste0(path_folder, "/", "minimap.sortG.1_vs_minimap.sortG.2_on_genome_combine.txt"))$size != 0){
-                                                      data_eligos <- read.table(paste0(path_folder, "/", "minimap.sortG.1_vs_minimap.sortG.2_on_genome_combine.txt"), header = TRUE)
+                                                      data_eligos <- read.table(paste0(path_folder, "/", "minimap.sortG.1_vs_minimap.sortG.2_on_genome_combine.txt"), header = TRUE, fill = TRUE)
+                                                      rows_eligos <- apply(data_eligos, 1, function(x){all(!is.na(x))})
+                                                      eligos <- data_eligos[which(rows_eligos),]
                                                       eligos <- data_eligos[, c(1:4,18,16,18)]
                                                       eligos$start_loc <- eligos$start_loc
                                                       eligos$end_loc <- eligos$end_loc
@@ -199,14 +202,17 @@ output_processing <- function(tool, path_folder, output_file, filtering_paramete
                                                              }
                                                                else {data_epinanosvm <- read.table(paste0(path_folder, "/", "minus_mod_prediction.q3.mis3.del3.MODEL.rrach.q3.mis3.del3.linear.dump.csv"), sep = ",")}
 
-                                                             epinanosvm <- data.frame("Chr" = data_epinanosvm$V3,
+                                                             epinanosvm <- data.frame("Kmer" = data_epinanosvm$V1,
+										      "Chr" = data_epinanosvm$V3,
                                                                                       "Start" = sapply(data_epinanosvm$V2, function(x){return(strsplit(x, split = "\\-")[[1]][1])}),
                                                                                       "End" = sapply(data_epinanosvm$V2, function(x){return(strsplit(x, split = "\\-")[[1]][2])}),
                                                                                       "Strand" = data_epinanosvm$V4,
                                                                                       "Status" = ifelse(data_epinanosvm$V28 > filtering_parameter, "Mod", "Unmod"), 
                                                                                       "ProbM" = data_epinanosvm$V28
                                                                                      )
+							     epinanosvm <- epinanosvm[which(epinanosvm$Kmer %in% rrach), ]
                                                              epinanosvm <- epinanosvm[which(epinanosvm$Status == "Mod"), ]
+							     epinanosvm <- epinanosvm[, 2:7]
                                                              write.table(epinanosvm, file = output_file, quote = F, sep = "\t", row.names = F)
                                                            }
                                                              else {message(paste0(tool,"'s output files don't exist."))}
@@ -216,11 +222,11 @@ output_processing <- function(tool, path_folder, output_file, filtering_paramete
             xpore = {output_xpore <- function(){if (file.exists(paste0(path_folder, "/", "diffmod.table"))
                                                   && file.info(paste0(path_folder, "/", "diffmod.table"))$size != 0){
                                                     data_xpore <- read.table(paste0(path_folder, "/", "diffmod.table"), header = TRUE, sep=",") 
-                                                    xpore <- data.frame("GeneID" = data_xpore$id,
-                                                                        "Start" = data_xpore$position - 1,
-                                                                        "End" = data_xpore$position,
-                                                                        "Status" = p.adjust(data_xpore$pval_KD_vs_WT, method = "BH"), # Adviced to use FDR instead of pvalue
-                                                                        "FDR" = p.adjust(data_xpore$pval_KD_vs_WT, method = "BH")
+                                                    xpore <- data.frame("GeneID" = data_xpore[,1],
+                                                                        "Start" = data_xpore[,2] - 1,
+                                                                        "End" = data_xpore[,2],
+                                                                        "Status" = p.adjust(data_xpore[,5], method = "BH"), # Adviced to use FDR instead of pvalue
+                                                                        "FDR" = p.adjust(data_xpore[,5], method = "BH")
                                                                         )
                                                     xpore$Status <- ifelse(!is.nan(xpore$Status) & !is.na(xpore$Status) & xpore$Status < filtering_parameter, "Mod", "Unmod")
                                                     xpore <- xpore[which(xpore$Status == "Mod"), ]
@@ -238,7 +244,7 @@ output_processing <- function(tool, path_folder, output_file, filtering_paramete
             },
             nanodoc = {output_nanodoc <- function(){if (length(list.files(path = path_folder, pattern = "*.txt")) != 0){
                                                       txt_files_ls <- list.files(path = path_folder, pattern="*.txt")
-                                                      txt_files_df <- lapply(txt_files_ls, function(x) {if(file.info(paste0(path_folder, "/", x))$size != 0){
+                                                      txt_files_df <- lapply(txt_files_ls, function(x) {if (file.info(paste0(path_folder, "/", x))$size != 0){
                                                                                                           table <- read.table(file = paste0(path_folder, "/", x), sep = "\t")
                                                                                                           table <- cbind(table, x) 
                                                                                                           table
@@ -255,7 +261,9 @@ output_processing <- function(tool, path_folder, output_file, filtering_paramete
                                                         nanodoc$strand <- rep("*", nrow(nanodoc))
                                                         nanodoc <- nanodoc[,c(5,1,2,6,3,4)]
                                                         colnames(nanodoc) <- c("Chr", "Start", "End", "Strand", "Status", "Score")
-                                                        if(nrow(nanodoc)>0){write.table(nanodoc, file = output_file, quote = F, sep = "\t", row.names = F)}
+                                                        if (nrow(nanodoc) > 0) {
+                                                          write.table(nanodoc, file = output_file, quote = F, sep = "\t", row.names = F)
+                                                        }
                                                       }
                                                         else {message(paste0(tool,"'s output files don't exist."))}
                                                     }
@@ -302,7 +310,7 @@ output_processing <- function(tool, path_folder, output_file, filtering_paramete
                                                     }
                                                     output_nanom6a()
             },
-            tomboComparison = {output_tomboComparison <- function(){if (file.exists(paste0(path_folder, "/", "sample.level_samp_comp_detect.statistic.plus.wig"))
+            tomboComparison = {output_tomboComparisono <- function(){if (file.exists(paste0(path_folder, "/", "sample.level_samp_comp_detect.statistic.plus.wig"))
                                                                       && file.info(paste0(path_folder, "/", "sample.level_samp_comp_detect.statistic.plus.wig"))$size != 0){
                                                                         data_tombo <- read.table(paste0(path_folder, "/", "sample.level_samp_comp_detect.statistic.plus.wig"), fill = T, header = T)
                                                                         tombo <- data.frame()
@@ -334,10 +342,10 @@ output_processing <- function(tool, path_folder, output_file, filtering_paramete
                                                                         coordinate_tombo_unlisted <- unlist(transcriptToGenome(test_tombo, edb))
                                                                         df_tombo <- as.data.frame(unname(coordinate_tombo_unlisted[,c(0,2,4,5)]))
                                                                         df_tombo <- df_tombo[,c(1:3,5,6,7,8)]
-                                                                        rownames(df_tombo) <- paste0(df_tombo[, 6], "_", df_tombo[, 7], "_", df_tombo[, 5])
+                                                                        names_df_tombo <- paste0(df_tombo[, 6], "_", df_tombo[, 7], "_", df_tombo[, 5])
                                                                         rownames(tombo) <- paste0(tombo[, 2], "_", tombo[, 3], "_", tombo[, 1])
-                                                                        df_tombo$Status <- tombo[rownames(df_tombo), 4]
-                                                                        df_tombo$Pvalue <- 10**(-as.numeric(tombo[rownames(df_tombo), 5])) # Parameter of filtering is Pvalue not -log10(Pvalue)
+                                                                        df_tombo$Status <- tombo[names_df_tombo, 4]
+                                                                        df_tombo$Pvalue <- 10**(-as.numeric(tombo[names_df_tombo, 5])) # Parameter of filtering is Pvalue not -log10(Pvalue)
                                                                         df_tombo_final <- df_tombo[,c(1,2,3,4,8,9)]
                                                                         colnames(df_tombo_final) <- c("Chr", "Start", "End", "Strand", "Status", "Pvalue")
                                                                         write.table(df_tombo_final, file = output_file, quote = F, sep = "\t", row.names = F)
@@ -351,6 +359,7 @@ output_processing <- function(tool, path_folder, output_file, filtering_paramete
 }
 
 # Definining a set of parameters used to filter the results for those tools which give as output all the sites 
+rrach <- c("AAACA","AAACT","AAACC","GAACA","GAACT","GAACC","GGACA","GGACT","GGACC","GAACA","GAACT","GAACC")
 tools <- c("dena", "drummer", "differr", "yanocomp", "nanocompore", "eligos", "mines"
          , "epinanoErr", "epinanoSvm", "xpore", "nanodoc", "nanom6a", "tomboComparison")
 
