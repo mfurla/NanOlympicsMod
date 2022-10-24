@@ -13,6 +13,7 @@ library(ensembldb)
 library(GenomicRanges)
 library(stringr)
 library(Biostrings)
+library(parallel)
 
 output_processing <- function(tool, path_folder, output_file, filtering_parameter, genome_gtf, genome_bed){
   if (!file.exists(path_folder)){
@@ -313,7 +314,9 @@ output_processing <- function(tool, path_folder, output_file, filtering_paramete
             tomboComparison = {output_tomboComparison <- function(){if (file.exists(paste0(path_folder, "/", "sample.level_samp_comp_detect.statistic.plus.wig"))
                                                                       && file.info(paste0(path_folder, "/", "sample.level_samp_comp_detect.statistic.plus.wig"))$size != 0){
                                                                         data_tombo <- read.table(paste0(path_folder, "/", "sample.level_samp_comp_detect.statistic.plus.wig"), fill = T, header = T)
-                                                                        tombo <- data.frame()
+                                                                        #tombo <- data.frame()
+                                                                        tombo <- matrix(data = NA, nrow = dim(data_tombo)[1], ncol = 5)
+                                                                        counter <- 1
                                                                         for (row in 1:nrow(data_tombo)) {
                                                                           for (col in 1:2) {
                                                                             if (is.na(as.numeric(data_tombo[row,col]))){
@@ -328,10 +331,13 @@ output_processing <- function(tool, path_folder, output_file, filtering_paramete
                                                                             else if (col == 2){
                                                                               pvalue <- data_tombo[row, col]
                                                                               x <- c(transcriptID, start, end, pvalue, pvalue)
-                                                                              tombo <- rbind(tombo, x)
+                                                                              #tombo <- rbind(tombo, x)
+                                                                              tombo[counter, ] <- x
+                                                                              counter <- counter + 1 
                                                                             }
                                                                           }
                                                                         }
+                                                                        tombo <- as.data.frame(tombo)
                                                                         tombo[,4] <- ifelse(!is.nan(tombo[,4]) & !is.na(tombo[,4]) & 10**(-as.numeric(tombo[,4])) < filtering_parameter, "Mod", "Unmod")
                                                                         tombo <- tombo[which(tombo[,4] == "Mod"), ]
                                                                         # Creation Edb Database from genome GTF
@@ -339,7 +345,21 @@ output_processing <- function(tool, path_folder, output_file, filtering_paramete
                                                                         edb <- EnsDb(EnsDb)
                                                                         # Lift-over + Creation of bed file
                                                                         test_tombo <- IRanges(start = as.numeric(tombo[,2]), end = as.numeric(tombo[,3]), names = c(tombo[,1]))
-                                                                        coordinate_tombo_unlisted <- unlist(transcriptToGenome(test_tombo, edb))
+
+                                                                        num_reads_chunk <- 1000
+                                                                        mc.cores <- as.numeric(mccores)
+                                                                        if (length(test_tombo) < num_reads_chunk) {
+                                                                          test_tombo_split <- list(test_tombo)
+                                                                        } else {
+                                                                          test_tombo_split <- split(test_tombo, rep(seq(from = 1, to = ceiling(length(test_tombo)/num_reads_chunk)), each = num_reads_chunk)[1:length(test_tombo)])
+                                                                        }
+
+                                                                        tmp <- mclapply(test_tombo_split, function(x) {
+                                                                          coordinate_tombo_unlisted <- unlist(transcriptToGenome(x, edb))
+                                                                        }, mc.cores = mc.cores)
+
+                                                                        coordinate_tombo_unlisted <- unlist(as(tmp, "GRangesList"))
+                                                                        #coordinate_tombo_unlisted <- unlist(transcriptToGenome(test_tombo, edb))
                                                                         df_tombo <- as.data.frame(unname(coordinate_tombo_unlisted[,c(0,2,4,5)]))
                                                                         df_tombo <- df_tombo[,c(1:3,5,6,7,8)]
                                                                         names_df_tombo <- paste0(df_tombo[, 6], "_", df_tombo[, 7], "_", df_tombo[, 5])
