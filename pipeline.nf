@@ -56,6 +56,7 @@ process multi2single {
     output:
     	tuple val(sample), val(condition) into singleReadFAST5_fastq
     	tuple val(condition), val(sample) into singleReadFAST5_tombo1
+    	tuple val(condition), val(sample) into singleReadFAST5_nanodoc
 
     script:
     if(params.multi2single)
@@ -241,56 +242,46 @@ process minimap2Merge {
 	"""
 }
 
-// Resquiggle for each condition and sample.
+// From a single channel for all the alignments to one channel for each condition.
+ni_test_tombo1=Channel.create()
+ni_other_tombo1=Channel.create()
+singleReadFAST5_tombo1.groupTuple(by:0)
+	.choice( ni_test_tombo1, ni_other_tombo1 ) { a -> a[0] == params.test_condition ? 0 : 1 } 
+
+// Resquiggle for each condition.
 process tombo1 {
     input:
-		tuple val(condition), val(sample) from singleReadFAST5_tombo1
+		tuple val('condition1'), val('samples') from ni_test_tombo1
+		tuple val('condition2'), val('samples') from ni_other_tombo1
 
 		each file('transcriptome.fa') from transcriptome_fasta_tombo1
 		each file('transcriptome.fa.fai') from transcriptome_fai_tombo1
 
     output:
-		tuple val(condition), val(sample) into tombo1_tombo2
-		tuple val(condition), val(sample) into tombo1_tombo3
-		tuple val(condition), val(sample) into tombo1_nanom6a
-		tuple val(condition), val(sample) into tombo1_dena
-                tuple val(condition), val(sample) into tombo1_nanodoc_all
+		tuple val(condition1) into condition1_tombo1_tombo2
+		tuple val(condition2) into condition2_tombo1_tombo2
+
+		tuple val(condition1) into condition1_tombo1_tombo3
+		tuple val(condition2) into condition2_tombo1_tombo3
+
+		tuple val(condition1) into condition1_tombo1_nanom6a
+		tuple val(condition2) into condition2_tombo1_nanom6a
+
+		tuple val(condition1) into condition1_tombo1_dena
+		tuple val(condition2) into condition2_tombo1_dena
+
     script:
     if(params.tombo1)
     """
-		/bin/miniconda3/bin/tombo resquiggle ${params.resultsDir}/${condition}/${sample}/ --ignore-read-locks --overwrite --basecall-group ${params.fast5_slot} transcriptome.fa --processes ${task.cpus} --fit-global-scale --include-event-stdev --failed-reads-filename ${params.resultsDir}/${condition}/${sample}/failedReads.txt
+		/bin/miniconda3/bin/tombo resquiggle ${params.resultsDir}/${condition1}/ --ignore-read-locks --overwrite --basecall-group ${params.fast5_slot} transcriptome.fa --processes ${task.cpus} --fit-global-scale --include-event-stdev --failed-reads-filename ${params.resultsDir}/${condition1}/failedReads.txt
+
+		/bin/miniconda3/bin/tombo resquiggle ${params.resultsDir}/${condition2}/ --ignore-read-locks --overwrite --basecall-group ${params.fast5_slot} transcriptome.fa --processes ${task.cpus} --fit-global-scale --include-event-stdev --failed-reads-filename ${params.resultsDir}/${condition2}/failedReads.txt
     """
 	else
 	"""
 		echo "Skipped"
     """
 }
-
-// From a single channel for all tombo1 outputs to one channel for each condition.
-condition1_tombo1_tombo2=Channel.create()
-condition2_tombo1_tombo2=Channel.create()
-tombo1_tombo2.groupTuple(by:0)
-        .choice( condition1_tombo1_tombo2, condition2_tombo1_tombo2 ) { a -> a[0] == params.test_condition ? 0 : 1 }
-
-condition1_tombo1_tombo3=Channel.create()
-condition2_tombo1_tombo3=Channel.create()
-tombo1_tombo3.groupTuple(by:0)
-        .choice( condition1_tombo1_tombo3, condition2_tombo1_tombo3 ) { a -> a[0] == params.test_condition ? 0 : 1 }
-
-condition1_tombo1_nanom6a=Channel.create()
-condition2_tombo1_nanom6a=Channel.create()
-tombo1_nanom6a.groupTuple(by:0)
-        .choice( condition1_tombo1_nanom6a, condition2_tombo1_nanom6a ) { a -> a[0] == params.test_condition ? 0 : 1 }
-
-condition1_tombo1_dena=Channel.create()
-condition2_tombo1_dena=Channel.create()
-tombo1_dena.groupTuple(by:0)
-        .choice( condition1_tombo1_dena, condition2_tombo1_dena ) { a -> a[0] == params.test_condition ? 0 : 1 }
-
-tombo1_nanodoc=Channel.create()
-tombo2_nanodoc=Channel.create()
-tombo1_nanodoc_all.groupTuple(by:0)
-        .choice( tombo1_nanodoc, tombo2_nanodoc ) { a -> a[0] == params.test_condition ? 0 : 1 }
 
 // RNA modifications detection with Tombo denovo
 process tombo2 {
@@ -315,11 +306,11 @@ process tombo2 {
 
 		/bin/miniconda3/bin/tombo text_output browser_files --fast5-basedirs ${params.resultsDir}/${condition1}/ --statistics-filename ${params.resultsDir}/${condition1}/tomboDenovo/Stats_Filename.tombo.stats --browser-file-basename ${params.resultsDir}/${condition1}/tomboDenovo/output_filename --file-types statistic fraction dampened_fraction coverage valid_coverage signal 
 
-    	#mkdir -p ${params.resultsDir}/${condition2}/tomboDenovo
+#    	mkdir -p ${params.resultsDir}/${condition2}/tomboDenovo
 
-	#	/bin/miniconda3/bin/tombo detect_modifications de_novo --per-read-statistics-basename ${params.resultsDir}/${condition1}/tomboDenovo/Per_read_Stats_Filename --fast5-basedirs ${params.resultsDir}/${condition2}/ --statistics-file-basename ${params.resultsDir}/${condition2}/tomboDenovo/Stats_Filename
+#		/bin/miniconda3/bin/tombo detect_modifications de_novo --per-read-statistics-basename ${params.resultsDir}/${condition1}/tomboDenovo/Per_read_Stats_Filename --fast5-basedirs ${params.resultsDir}/${condition2}/ --statistics-file-basename ${params.resultsDir}/${condition2}/tomboDenovo/Stats_Filename
 
-	#	/bin/miniconda3/bin/tombo text_output browser_files --fast5-basedirs ${params.resultsDir}/${condition2}/ --statistics-filename ${params.resultsDir}/${condition2}/tomboDenovo/Stats_Filename.tombo.stats --browser-file-basename ${params.resultsDir}/${condition2}/tomboDenovo/output_filename --file-types statistic fraction dampened_fraction coverage valid_coverage signal 
+#		/bin/miniconda3/bin/tombo text_output browser_files --fast5-basedirs ${params.resultsDir}/${condition2}/ --statistics-filename ${params.resultsDir}/${condition2}/tomboDenovo/Stats_Filename.tombo.stats --browser-file-basename ${params.resultsDir}/${condition2}/tomboDenovo/output_filename --file-types statistic fraction dampened_fraction coverage valid_coverage signal 
     """
 	else
 	"""
@@ -725,11 +716,17 @@ process epinanoError {
     """
 }
 
+// From a single channel for all the alignments to one channel for each condition.
+ni_test_nanodoc=Channel.create()
+ni_other_nanodoc=Channel.create()
+singleReadFAST5_nanodoc.groupTuple(by:0)
+	.choice( ni_test_nanodoc, ni_other_nanodoc ) { a -> a[0] == params.test_condition ? 0 : 1 } 
+
 // RNA modifications detection with nanodoc for each condition
 process nanodoc {
     input:
-	    val(condition1) from tombo1_nanodoc
-	    val(condition2) from tombo2_nanodoc
+	    tuple val('condition1'), val('samples') from ni_test_nanodoc
+	    tuple val('condition2'), val('samples') from ni_other_nanodoc
 
 		each file('genome.fa') from genome_fasta_nanodoc
 		each file('genome.fa.fai') from genome_fai_nanodoc
@@ -1069,7 +1066,8 @@ process postprocessing {
 		mkdir -p ${params.resultsDir}/output_statistical/
 
 		Rscript ${params.postprocessingScript} path=${params.resultsDir} genomebed=${params.genomebed} genomegtf=${params.gtf} resultsFolder=${params.resultsDir}/output_bed_files/ mccores=${task.cpus} threshold=${params.threshold} pathdena=${params.test_condition}/dena/prova pathdrummer=drummer pathdifferr=differr pathyanocomp=yanocomp pathmines=${params.test_condition}/mines pathnanocompore=nanocompore patheligos=eligos/merged pathepinanoError=epinanoError pathepinanoSVM=${params.test_condition}/epinanoSVM pathxpore=xpore pathnanodoc=nanodoc pathnanom6a=${params.test_condition}/nanom6a/result_final pathtomboComparison=tomboComparison
-                Rscript ${params.statisticalAnalysis} bed_folder=${params.resultsDir}/output_bed_files genomebed=${params.genomebed} genomegtf=${params.gtf} genesbed=${params.genesbed} resultsFolder=${params.resultsDir}/output_statistical/ mccores=${task.cpus} peaks=${params.peaksfile} binLength=${params.binLength}
+        
+        Rscript ${params.statisticalAnalysis} bed_folder=${params.resultsDir}/output_bed_files genomebed=${params.genomebed} genomegtf=${params.gtf} genesbed=${params.genesbed} resultsFolder=${params.resultsDir}/output_statistical/ mccores=${task.cpus} peaks=${params.peaksfile} binLength=${params.binLength}
 
     """
 	else
