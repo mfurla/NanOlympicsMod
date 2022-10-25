@@ -346,7 +346,7 @@ output_processing <- function(tool, path_folder, output_file, filtering_paramete
                                                                         # Lift-over + Creation of bed file
                                                                         test_tombo <- IRanges(start = as.numeric(tombo[,2]), end = as.numeric(tombo[,3]), names = c(tombo[,1]))
 
-                                                                        num_reads_chunk <- 1000
+                                                                        num_reads_chunk <- 100
                                                                         mc.cores <- as.numeric(mccores)
                                                                         if (length(test_tombo) < num_reads_chunk) {
                                                                           test_tombo_split <- list(test_tombo)
@@ -355,9 +355,18 @@ output_processing <- function(tool, path_folder, output_file, filtering_paramete
                                                                         }
 
                                                                         tmp <- mclapply(test_tombo_split, function(x) {
-                                                                          coordinate_tombo_unlisted <- unlist(transcriptToGenome(x, edb))
-                                                                        }, mc.cores = mc.cores)
-
+                                                                          tryCatch({
+                                                                            coordinate_tombo_unlisted <- unlist(transcriptToGenome(x, edb))
+                                                                            return(x)
+                                                                          }, warning = function(w) {
+                                                                            print("Warning")
+                                                                            return(NULL)
+                                                                          }, error = function(e) {
+                                                                            print("Error")
+                                                                            return(NULL)
+                                                                           }
+                                                                           )}, mc.cores = mc.cores)
+                                                                        
                                                                         coordinate_tombo_unlisted <- unlist(as(tmp, "GRangesList"))
                                                                         #coordinate_tombo_unlisted <- unlist(transcriptToGenome(test_tombo, edb))
                                                                         df_tombo <- as.data.frame(unname(coordinate_tombo_unlisted[,c(0,2,4,5)]))
