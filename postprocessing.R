@@ -357,7 +357,7 @@ output_processing <- function(tool, path_folder, output_file, filtering_paramete
                                                                         tmp <- mclapply(test_tombo_split, function(x) {
                                                                           tryCatch({
                                                                             coordinate_tombo_unlisted <- unlist(transcriptToGenome(x, edb))
-                                                                            return(x)
+                                                                            return(coordinate_tombo_unlisted)
                                                                           }, warning = function(w) {
                                                                             print("Warning")
                                                                             return(NULL)
