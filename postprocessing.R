@@ -346,7 +346,7 @@ output_processing <- function(tool, path_folder, output_file, filtering_paramete
                                                                         # Lift-over + Creation of bed file
                                                                         test_tombo <- IRanges(start = as.numeric(tombo[,2]), end = as.numeric(tombo[,3]), names = c(tombo[,1]))
 
-                                                                        num_reads_chunk <- 100
+                                                                        num_reads_chunk <- 1
                                                                         mc.cores <- as.numeric(mccores)
                                                                         if (length(test_tombo) < num_reads_chunk) {
                                                                           test_tombo_split <- list(test_tombo)
@@ -367,6 +367,8 @@ output_processing <- function(tool, path_folder, output_file, filtering_paramete
                                                                            }
                                                                            )}, mc.cores = mc.cores)
                                                                         
+                                                                        ind_ok <- which(unlist(lapply(tmp, function(x) !is.null(x))))
+                                                                        tmp <- tmp[ind_ok]
                                                                         coordinate_tombo_unlisted <- unlist(as(tmp, "GRangesList"))
                                                                         #coordinate_tombo_unlisted <- unlist(transcriptToGenome(test_tombo, edb))
                                                                         df_tombo <- as.data.frame(unname(coordinate_tombo_unlisted[,c(0,2,4,5)]))
