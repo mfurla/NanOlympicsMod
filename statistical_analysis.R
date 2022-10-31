@@ -8,6 +8,9 @@ for(v in args)
   assign(vTmp[[1]],vTmp[[2]])
 }
 
+#avoid scientific notation
+options(scipen = 100)
+
 # Libraries
 library(GenomicRanges)
 library(GenomicAlignments)
