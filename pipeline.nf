@@ -797,10 +797,9 @@ process drummer {
 		  -o ${params.resultsDir}/drummer/DRUMMER/\$line/ \
 		  -a exome \
 		  -p ${params.drummerPval} \
-		  -n \$line ;
+		  -n \$line \
+                  -m true ;
 		done < ${params.resultsDir}/drummer/chromosomes.txt || true
-
-
     """
 	else
 	"""
@@ -822,6 +821,7 @@ process nanopolish1 {
     	tuple val(condition), val(sample) into nanopolish1_xpore
     	tuple val(condition), val(sample) into nanopolish1_nanocompore1
     	tuple val(condition), val(sample) into nanopolish1_yanocomp1
+    	tuple val(condition), val(sample) into nanopolish1_m6anet1
 
     script:
     if(params.nanopolish1)
@@ -839,7 +839,6 @@ process nanopolish1 {
 		/usr/bin/nanopolish/nanopolish eventalign --reads ${params.resultsDir}/${condition}/${sample}/FASTQ/singleReadsFASTQ.fastq --bam ${params.resultsDir}/${condition}/${sample}/transcriptomeAlignment/minimap.filt.sort.bam --genome transcriptome.fa --samples --signal-index --scale-events -n --summary ${params.resultsDir}/${condition}/${sample}/nanopolish/transcriptome/summary.txt --threads ${task.cpus} > ${params.resultsDir}/${condition}/${sample}/nanopolish/transcriptome/eventalign_readName.txt
 
 		/usr/bin/nanopolish/nanopolish eventalign --reads ${params.resultsDir}/${condition}/${sample}/FASTQ/singleReadsFASTQ.fastq --bam ${params.resultsDir}/${condition}/${sample}/transcriptomeAlignment/minimap.filt.sort.bam --genome transcriptome.fa --signal-index --scale-events --summary ${params.resultsDir}/${condition}/${sample}/nanopolish/transcriptome/summary.txt --threads ${task.cpus} > ${params.resultsDir}/${condition}/${sample}/nanopolish/transcriptome/eventalign_readIndex.txt
-
 
     """
 	else
@@ -887,7 +886,6 @@ process xpore2 {
     script:
     if(params.xpore)
     """
-
     	mkdir -p ${params.resultsDir}/xpore/
 
     	echo "data:" > ${params.resultsDir}/xpore/xpore.yaml
@@ -977,6 +975,58 @@ process nanocompore2 {
     """
 }
 
+// Data formatting for m6anet for each sample
+process m6anet1 {
+    input:
+	    tuple val('condition'), val('sample') from nanopolish1_m6anet1
+
+    output:
+    	tuple val(condition), val(sample), val() into m6anet1_m6anet2
+
+
+    script:
+    if(params.m6anet1)
+    """
+        mkdir -p ${params.resultsDir}/${condition}/${sample}/m6anet/
+
+        m6anet-dataprep --eventalign  ${params.resultsDir}/${condition}/${sample}/nanopolish/transcriptome/eventalign_readIndex.txt \
+                --out_dir ${params.resultsDir}/${condition}/${sample}/m6anet --n_processes ${task.cpus}
+    """
+	else
+	"""
+		ln -sf ${params.resultsDir}/${condition}/${sample}/m6anet m6anet
+    """
+}
+
+
+// From a single channel for all the alignments to one channel for each condition
+ni_test_m6anet2=Channel.create()
+ni_other_m6anet2=Channel.create()
+m6anet1_m6anet2.groupTuple(by:0)
+	.choice( ni_test_m6anet2, ni_other_m6anet2 ) { a -> a[0] == params.test_condition ? 0 : 1 } 
+
+// RNA modifications detection with m6anet
+process m6anet2 {
+    input:
+	    tuple val('condition1'), val('sample1') from ni_test_m6anet2
+
+    output:
+    	val('flagm6anet') into m6anet_postprocessing
+    script:
+    if(params.m6anet2)
+    """
+        mkdir -p ${params.resultsDir}/m6anet
+		preprocessing_dirs=\$(find /projects/CGS_shared/bproject_results_mESC_subset/WT -maxdepth 2 -type d | grep "m6anet\$")
+        m6anet-run_inference --input_dir \$preprocessing_dirs --out_dir ${params.resultsDir}/m6anet --infer_mod_rate --n_processes ${task.cpus}
+	
+	    zcat ${params.resultsDir}/m6anet/data.result.csv.gz > ${params.resultsDir}/m6anet/data.result.csv
+    """
+	else
+	"""
+        echo "Skipped"
+    """
+}
+
 // Data formatting for yanocomp for each sample
 process yanocomp1 {
     input:
@@ -1056,6 +1106,7 @@ process postprocessing {
 		val('flagnanodoc') from nanodoc_postprocessing
 		val('flagtombo2') from tombo2_postprocessing
 		val('flagtombo3') from tombo3_postprocessing
+		val('flagm6anet') from m6anet_postprocessing
 
     output:
 
@@ -1065,7 +1116,7 @@ process postprocessing {
 		mkdir -p ${params.resultsDir}/output_bed_files/
 		mkdir -p ${params.resultsDir}/output_statistical/
 
-		Rscript ${params.postprocessingScript} path=${params.resultsDir} genomebed=${params.genomebed} genomegtf=${params.gtf} resultsFolder=${params.resultsDir}/output_bed_files/ mccores=${task.cpus} threshold=${params.threshold} pathdena=${params.test_condition}/dena/prova pathdrummer=drummer pathdifferr=differr pathyanocomp=yanocomp pathmines=${params.test_condition}/mines pathnanocompore=nanocompore patheligos=eligos/merged pathepinanoError=epinanoError pathepinanoSVM=${params.test_condition}/epinanoSVM pathxpore=xpore pathnanodoc=nanodoc pathnanom6a=${params.test_condition}/nanom6a/result_final pathtomboComparison=tomboComparison
+		Rscript ${params.postprocessingScript} path=${params.resultsDir} genomebed=${params.genomebed} genomegtf=${params.gtf} resultsFolder=${params.resultsDir}/output_bed_files/ mccores=${task.cpus} threshold=${params.threshold} pathdena=${params.test_condition}/dena/prova pathdrummer=drummer pathdifferr=differr pathyanocomp=yanocomp pathmines=${params.test_condition}/mines pathnanocompore=nanocompore patheligos=eligos/merged pathepinanoError=epinanoError pathepinanoSVM=${params.test_condition}/epinanoSVM pathxpore=xpore pathnanodoc=nanodoc pathnanom6a=${params.test_condition}/nanom6a/result_final pathtomboComparison=tomboComparison pathm6anet=m6anet
         
         Rscript ${params.statisticalAnalysis} bed_folder=${params.resultsDir}/output_bed_files genomebed=${params.genomebed} genomegtf=${params.gtf} genesbed=${params.genesbed} resultsFolder=${params.resultsDir}/output_statistical/ mccores=${task.cpus} peaks=${params.peaksfile} binLength=${params.binLength}
 

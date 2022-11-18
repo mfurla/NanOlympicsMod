@@ -71,12 +71,12 @@ genesBins <- genesBins[which(width(genesBins) == w), ] # Remove bins without len
 ## 2) Load all the output files from the output directory
 files <- list.files(bed_folder, full.names = TRUE) # output_directory parameter from outside
 
-listmax <- paste0(c("dena", "epinanoErr", "epinanoSvm", "nanodoc"), collapse = "|") # for these tools we need to maximize the filtering paramenter when there are more than 1 in a bin
+listmax <- paste0(c("dena", "epinanoErr", "epinanoSvm", "nanodoc", "m6anet"), collapse = "|") # for these tools we need to maximize the filtering paramenter when there are more than 1 in a bin
 listmin <- paste0(c("differ", "drummer", "yanocomp", "nanocompore", "eligos", "xpore", "tomboComparison"), collapse = "|") # for these tools we need to minimize the filtering parameter
 
 ## 3) Convert .bed output file of each tool + peaks file into a Granges object
 # Peaks
-peaks_bed <- read.table(peaks, header = TRUE, sep = "\t") # MiCLIP and MAZTER-seq peaks file parameter from outside
+peaks_bed <- read.table(peaks, header = TRUE, sep = "\t") # gold-standard peaks file parameter from outside
 colnames(peaks_bed) <- c("chr", "start", "end", "desc", "score", "strand")
 peaks_granges <- makeGRangesFromDataFrame(peaks_bed)
 
@@ -95,9 +95,9 @@ names_nanom6A <- c()
 listF1score <- list()
 listPRcurves <- list()
 noise <- 0.000001
-threshold_default <- c(0.1, 0.05, 0.01, 0.05, 0.01, 0.001, 0.1, 0.5, 0.05, 0.02, 0.05)
+threshold_default <- c(0.1, 0.05, 0.01, 0.05, 0.01, 0.001, 0.1, 0.5, 0.05, 0.02, 0.05, 0.9)
 names(threshold_default) <- c("dena_output.bed", "differr_output.bed", "drummer_output.bed", "yanocomp_output.bed", "nanocompore_output.bed", "eligos_output.bed", 
-                                  "epinanoErr_output.bed", "epinanoSvm_output.bed", "xpore_output.bed", "nanodoc_output.bed", "tomboComparison_output.bed")
+                                  "epinanoErr_output.bed", "epinanoSvm_output.bed", "xpore_output.bed", "nanodoc_output.bed", "tomboComparison_output.bed", "m6anet_output.bed")
 
 for (y in files) {
   x <- basename(y)
@@ -110,12 +110,12 @@ for (y in files) {
   # Overlap between m6A detected site of each tool and genome binned
   overlap <- as.matrix(findOverlaps(query = granges, subject = genesBins, minoverlap = 1, type = "any"))
   if (grepl(x, pattern = paste0(c("dena","drummer","differr","yanocomp","nanocompore","eligos","epinanoErr",
-                                  "epinanoSvm","xpore","nanodoc","tomboComparison"), collapse = "|"))) {
+                                  "epinanoSvm","xpore","nanodoc","tomboComparison", "m6anet"), collapse = "|"))) {
     # Add column of filtering parameter
     filtering_parameter <- bed_file[overlap[,"queryHits"] , 6]
     overlap_w_parameter <- cbind(overlap, filtering_parameter)
     default <- unname(threshold_default[grep(x, pattern = paste0(c("dena","drummer","differr","yanocomp","nanocompore","eligos","epinanoErr","epinanoSvm",
-                                                                                                                                "xpore","nanodoc","tomboComparison"), collapse = "|"), value = T)])
+                                                                                                                                "xpore","nanodoc","tomboComparison", "m6anet"), collapse = "|"), value = T)])
     # Recognize from the name of the tool if we need to keep the maximum or minimum value (when there are more hits in a single bin)
     if(grepl(x, pattern = listmax)) { 
       score <- sapply(split(overlap_w_parameter[,3], overlap_w_parameter[,2]), max) + noise
