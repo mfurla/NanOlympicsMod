@@ -453,15 +453,22 @@ output_processing <- function(tool, path_folder, output_file, filtering_paramete
                 ind_ok <- which(unlist(lapply(tmp, function(x) !is.null(x))))
                 tmp <- tmp[ind_ok]
                 coordinate_m6anet_unlisted <- unlist(as(tmp, "GRangesList"))
-                
-                
-                
-                
+
                 #coordinate_m6anet_unlisted <- unlist(transcriptToGenome(test_m6anet, edb))
                 
                 df_m6anet <- as.data.frame(unname(coordinate_m6anet_unlisted[,c(0,2,4,5)]))[,c(1:3,5,6,7,8)]
+                
+                #rownames(df_m6anet) <- paste0(df_m6anet[, 6], "_", df_m6anet[, 7], "_", df_m6anet[, 5])
+                tmp_rownames <- paste0(df_m6anet[, 6], "_", df_m6anet[, 7], "_", df_m6anet[, 5])
+                dup_names <- names(which(table(tmp_rownames) > 1))
+                ind_dup <- which(tmp_rownames %in% dup_names)
+                ind_dup_rm <- ind_dup[which(duplicated(df_m6anet[ind_dup, c(5,6,7)]))]
+                if (length(ind_dup_rm) > 0) {
+                  df_m6anet <- df_m6anet[-ind_dup_rm, ]
+                }
                 rownames(df_m6anet) <- paste0(df_m6anet[, 6], "_", df_m6anet[, 7], "_", df_m6anet[, 5])
-                rownames(m6anet) <- paste0(m6anet[, 2], "_", m6anet[, 3], "_", m6anet[, 1], "_", gsub(pattern = "\\.", replacement = "_", x = m6anet[, 5]))
+                rownames(m6anet) <- paste0(m6anet[, 2], "_", m6anet[, 3], "_", m6anet[, 1])
+                
                 df_m6anet$Status <- m6anet[rownames(df_m6anet), 4]
                 df_m6anet$Prob_Mod <- m6anet[rownames(df_m6anet), 5]
                 df_m6anet_final <- df_m6anet[,c(1,2,3,4,8,9)]
