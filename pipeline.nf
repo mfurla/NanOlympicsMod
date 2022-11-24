@@ -1016,7 +1016,7 @@ process m6anet2 {
     if(params.m6anet2)
     """
         mkdir -p ${params.resultsDir}/m6anet
-		preprocessing_dirs=\$(find /projects/CGS_shared/bproject_results_mESC_subset/WT -maxdepth 2 -type d | grep "m6anet\$")
+	preprocessing_dirs=\$(find ${params.resultsDir}/${condition1} -maxdepth 2 -type d | grep "m6anet\$")
         m6anet-run_inference --input_dir \$preprocessing_dirs --out_dir ${params.resultsDir}/m6anet --infer_mod_rate --n_processes ${task.cpus}
 	
 	    zcat ${params.resultsDir}/m6anet/data.result.csv.gz > ${params.resultsDir}/m6anet/data.result.csv
