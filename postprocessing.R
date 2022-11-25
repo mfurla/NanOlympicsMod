@@ -380,21 +380,52 @@ output_processing <- function(tool, path_folder, output_file, filtering_paramete
                   test_tombo_split <- split(test_tombo, rep(seq(from = 1, to = ceiling(length(test_tombo)/num_reads_chunk)), each = num_reads_chunk)[1:length(test_tombo)])
                 }
                 
-                tmp <- mclapply(test_tombo_split, function(x) {
-                  tryCatch({
-                    coordinate_tombo_unlisted <- unlist(transcriptToGenome(x, edb))
-                    return(coordinate_tombo_unlisted)
-                  }, warning = function(w) {
-                    print("Warning")
-                    return(NULL)
-                  }, error = function(e) {
-                    print("Error")
-                    return(NULL)
+                tmp1 <- vector(mode = "list", length = length(test_tombo_split))
+                names(tmp1) <- 1:length(test_tombo_split)
+                tmp <- vector(mode = "list", length = length(test_tombo_split))
+                names(tmp) <- 1:length(test_tombo_split)
+                ind_retry <- 1:length(test_tombo_split)
+                while(any(unlist(lapply(tmp, is.null)))) {
+                  cat(sprintf("Starting new iteration for Tombo; %d sites missing\n", length(which(unlist(lapply(tmp, is.null))))))
+                  length(which(unlist(lapply(tmp, is.null))))
+                  tmp1 <- tmp1[ind_retry]
+                  tmp1 <- mclapply(test_tombo_split[ind_retry], function(x) {
+                    tryCatch({
+                      coordinate_tombo_unlisted <- unlist(transcriptToGenome(x, edb))
+                      return(coordinate_tombo_unlisted)
+                    }, warning = function(w) {
+                      print("Warning")
+                      return(NULL)
+                    }, error = function(e) {
+                      print("Error")
+                      return(NULL)
+                    }
+                    )}, mc.cores = mc.cores)
+                  
+                  ind_retry <- names(which(unlist(lapply(tmp1, function(x) is.null(x)))))
+                  ind_ok <- names(which(unlist(lapply(tmp1, function(x) !is.null(x)))))
+                  tmp[ind_ok] <- tmp1[ind_ok]
+                  if (length(ind_retry) > 0) {
+                    tmp1 <- tmp1[ind_retry]
                   }
-                  )}, mc.cores = mc.cores)
+                }
                 
-                ind_ok <- which(unlist(lapply(tmp, function(x) !is.null(x))))
-                tmp <- tmp[ind_ok]
+                # tmp1 <- mclapply(test_tombo_split, function(x) {
+                #   tryCatch({
+                #     coordinate_tombo_unlisted <- unlist(transcriptToGenome(x, edb))
+                #     return(coordinate_tombo_unlisted)
+                #   }, warning = function(w) {
+                #     print("Warning")
+                #     return(NULL)
+                #   }, error = function(e) {
+                #     print("Error")
+                #     return(NULL)
+                #   }
+                #   )}, mc.cores = mc.cores)
+                
+                #ind_ok <- which(unlist(lapply(tmp, function(x) !is.null(x))))
+                #tmp <- tmp[ind_ok]
+                
                 coordinate_tombo_unlisted <- unlist(as(tmp, "GRangesList"))
                 #coordinate_tombo_unlisted <- unlist(transcriptToGenome(test_tombo, edb))
                 df_tombo <- as.data.frame(unname(coordinate_tombo_unlisted[,c(0,2,4,5)]))
@@ -437,23 +468,35 @@ output_processing <- function(tool, path_folder, output_file, filtering_paramete
                   test_m6anet_split <- split(test_m6anet, rep(seq(from = 1, to = ceiling(length(test_m6anet)/num_reads_chunk)), each = num_reads_chunk)[1:length(test_m6anet)])
                 }
                 
-                tmp <- mclapply(test_m6anet_split, function(x) {
-                  tryCatch({
-                    coordinate_m6anet_unlisted <- unlist(transcriptToGenome(x, edb))
-                    return(coordinate_m6anet_unlisted)
-                  }, warning = function(w) {
-                    print("Warning")
-                    return(NULL)
-                  }, error = function(e) {
-                    print("Error")
-                    return(NULL)
+                tmp1 <- vector(mode = "list", length = length(test_m6anet_split))
+                names(tmp1) <- 1:length(test_m6anet_split)
+                tmp <- vector(mode = "list", length = length(test_m6anet_split))
+                names(tmp) <- 1:length(test_m6anet_split)
+                ind_retry <- 1:length(test_m6anet_split)
+                while(any(unlist(lapply(tmp, is.null)))) {
+                  cat(sprintf("Starting new iteration for m6Anet; %d sites missing\n", length(which(unlist(lapply(tmp, is.null))))))
+                  tmp1 <- tmp1[ind_retry]
+                  tmp1 <- mclapply(test_m6anet_split, function(x) {
+                    tryCatch({
+                      coordinate_m6anet_unlisted <- unlist(transcriptToGenome(x, edb))
+                      return(coordinate_m6anet_unlisted)
+                    }, warning = function(w) {
+                      print("Warning")
+                      return(NULL)
+                    }, error = function(e) {
+                      print("Error")
+                      return(NULL)
+                    }
+                    )}, mc.cores = mc.cores)
+                  ind_retry <- names(which(unlist(lapply(tmp1, function(x) is.null(x)))))
+                  ind_ok <- names(which(unlist(lapply(tmp1, function(x) !is.null(x)))))
+                  tmp[ind_ok] <- tmp1[ind_ok]
+                  if (length(ind_retry) > 0) {
+                    tmp1 <- tmp1[ind_retry]
                   }
-                  )}, mc.cores = mc.cores)
+                }
                 
-                ind_ok <- which(unlist(lapply(tmp, function(x) !is.null(x))))
-                tmp <- tmp[ind_ok]
                 coordinate_m6anet_unlisted <- unlist(as(tmp, "GRangesList"))
-
                 #coordinate_m6anet_unlisted <- unlist(transcriptToGenome(test_m6anet, edb))
                 
                 df_m6anet <- as.data.frame(unname(coordinate_m6anet_unlisted[,c(0,2,4,5)]))[,c(1:3,5,6,7,8)]
@@ -467,6 +510,7 @@ output_processing <- function(tool, path_folder, output_file, filtering_paramete
                   df_m6anet <- df_m6anet[-ind_dup_rm, ]
                 }
                 rownames(df_m6anet) <- paste0(df_m6anet[, 6], "_", df_m6anet[, 7], "_", df_m6anet[, 5])
+                
                 rownames(m6anet) <- paste0(m6anet[, 2], "_", m6anet[, 3], "_", m6anet[, 1])
                 
                 df_m6anet$Status <- m6anet[rownames(df_m6anet), 4]
