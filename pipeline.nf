@@ -1113,12 +1113,11 @@ process postprocessing {
     script:
     if(params.postprocessing)
     """
-		mkdir -p ${params.resultsDir}/output_bed_files/
-		mkdir -p ${params.resultsDir}/output_statistical/
+	mkdir -p ${params.resultsDir}/output_bed_files/
+	mkdir -p ${params.resultsDir}/output_statistical/
 
-		Rscript ${params.postprocessingScript} path=${params.resultsDir} genomebed=${params.genomebed} genomegtf=${params.gtf} resultsFolder=${params.resultsDir}/output_bed_files/ mccores=${task.cpus} threshold=${params.threshold} pathdena=${params.test_condition}/dena pathdrummer=drummer pathdifferr=differr pathyanocomp=yanocomp pathmines=${params.test_condition}/mines pathnanocompore=nanocompore patheligos=eligos/merged pathepinanoError=epinanoError pathepinanoSVM=${params.test_condition}/epinanoSVM pathxpore=xpore pathnanodoc=nanodoc pathnanom6a=${params.test_condition}/nanom6a/result_final pathtomboComparison=tomboComparison pathm6anet=m6anet
-        
-        Rscript ${params.statisticalAnalysis} bed_folder=${params.resultsDir}/output_bed_files genomebed=${params.genomebed} genomegtf=${params.gtf} genesbed=${params.genesbed} resultsFolder=${params.resultsDir}/output_statistical/ mccores=${task.cpus} peaks=${params.peaksfile} binLength=${params.binLength}
+	Rscript ${params.postprocessingScript} path=${params.resultsDir} genomebed=${params.genomebed} genomegtf=${params.gtf} resultsFolder=${params.resultsDir}/output_bed_files/ mccores=${task.cpus} threshold=${params.threshold} pathdena=${params.test_condition}/dena pathdrummer=drummer pathdifferr=differr pathyanocomp=yanocomp pathmines=${params.test_condition}/mines pathnanocompore=nanocompore patheligos=eligos/merged pathepinanoError=epinanoError pathepinanoSVM=${params.test_condition}/epinanoSVM pathxpore=xpore pathnanodoc=nanodoc pathnanom6a=${params.test_condition}/nanom6a/result_final pathtomboComparison=tomboComparison pathm6anet=m6anet
+        Rscript ${params.statisticalAnalysis} bed_folder=${params.resultsDir}/output_bed_files genomebed=${params.genomebed} genomegtf=${params.gtf} genesbed=${params.genesbed} resultsFolder=${params.resultsDir}/output_statistical/ mccores=${task.cpus} peaks=${params.peaksfile} binLength=${params.binLength} genomefile=${params.genome_fasta}
 
     """
 	else
