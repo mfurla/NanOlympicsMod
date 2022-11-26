@@ -18,8 +18,33 @@ library(GenomicFeatures)
 library(parallel)
 library(PRROC)
 library(stringr)
+library(Biostrings)
 
-## 1) Binning the genome in windows of length w
+## 1) Load all the output files from the output directory
+files <- list.files(bed_folder, full.names = TRUE, pattern = "\\.bed") # output_directory parameter from outside
+
+listmax <- paste0(c("dena", "epinanoErr", "epinanoSvm", "nanodoc", "m6anet"), collapse = "|") # for these tools we need to maximize the filtering paramenter when there are more than 1 in a bin
+listmin <- paste0(c("differ", "drummer", "yanocomp", "nanocompore", "eligos", "xpore", "tomboComparison"), collapse = "|") # for these tools we need to minimize the filtering parameter
+
+noise <- 0.000001
+threshold_default <- c(0.1, 0.05, 0.01, 0.05, 0.01, 0.001, 0.1, 0.5, 0.05, 0.02, 0.05, 0.9)
+names(threshold_default) <- c("dena_output.bed", "differr_output.bed", "drummer_output.bed", "yanocomp_output.bed", "nanocompore_output.bed", "eligos_output.bed", 
+                              "epinanoErr_output.bed", "epinanoSvm_output.bed", "xpore_output.bed", "nanodoc_output.bed", "tomboComparison_output.bed", "m6anet_output.bed")
+
+chrs <- readDNAStringSet(genomefile, format="fasta")
+RRACH <- c("AAACA","AAACT","AAACC","GAACA","GAACT","GAACC","GGACA","GGACT","GGACC","GAACA","GAACT","GAACC")
+RRACH_bed <- data.frame()
+
+for (x in RRACH) {
+  match <- as.data.frame(unlist(vmatchPattern(x, chrs)))
+  match$strand <- rep("+", nrow(match))
+  match <-match[,c(4,1,2,5)]
+  RRACH_bed <- rbind(RRACH_bed, match)
+}
+colnames(RRACH_bed) <- c("chr", "start", "end", "strand")
+#write.table(RRACH_bed, file = "RRACH_coords.bed", sep = "\t", quote = F, row.names = F)
+
+## 2) Binning the genome in windows of length w
 w <- as.numeric(binLength) # binLength parameter from outside
 genesBed <- read.table(genesbed, sep = "\t") # bed_genome parameter from outside
 colnames(genesBed) <- c("chr","start","end","name","score","strand")
@@ -57,7 +82,6 @@ genesBinsList <- mclapply(1:nrow(genesBed),function(k)
       }else{
         breaksTmp <- seq(from=1,to=(lTmp-swTmp+1),by=w)+(i$start-1)
       }
-      
       grangeTmp <- GRanges(seqnames=i$chr,ranges=IRanges(breaksTmp[-length(breaksTmp)],breaksTmp[-1]-1),strand=i$strand)
       names(grangeTmp) <- paste0(i$name,"-B",seq_along(breaksTmp[-1]-1))
       grangeTmp
@@ -68,119 +92,98 @@ genesBinsList <- mclapply(1:nrow(genesBed),function(k)
 genesBins <- unlist(as(genesBinsList,"GRangesList"))
 genesBins <- genesBins[which(width(genesBins) == w), ] # Remove bins without length equal to w
 
-## 2) Load all the output files from the output directory
-files <- list.files(bed_folder, full.names = TRUE) # output_directory parameter from outside
+###### Find bins with RRACH motifs
+RRACH_granges <- unique(sort(makeGRangesFromDataFrame(RRACH_bed)))
+RRACH_overlap <- findOverlaps(query = RRACH_granges, subject = genesBins, minoverlap = min(5, w), type = "any")
+genesBins_RRACH <- unique(sort(genesBins[subjectHits(RRACH_overlap)]))
 
-listmax <- paste0(c("dena", "epinanoErr", "epinanoSvm", "nanodoc", "m6anet"), collapse = "|") # for these tools we need to maximize the filtering paramenter when there are more than 1 in a bin
-listmin <- paste0(c("differ", "drummer", "yanocomp", "nanocompore", "eligos", "xpore", "tomboComparison"), collapse = "|") # for these tools we need to minimize the filtering parameter
-
-## 3) Convert .bed output file of each tool + peaks file into a Granges object
 # Peaks
 peaks_bed <- read.table(peaks, header = TRUE, sep = "\t") # gold-standard peaks file parameter from outside
 colnames(peaks_bed) <- c("chr", "start", "end", "desc", "score", "strand")
-peaks_granges <- makeGRangesFromDataFrame(peaks_bed)
+peaks_granges <- unique(sort(makeGRangesFromDataFrame(peaks_bed)))
+RRACH_overlap_genesBins_peaks <-  findOverlaps(query = genesBins_RRACH, subject = peaks_granges, minoverlap = 1, type = "any")
+peaks_RRACH_granges <- genesBins_RRACH[sort(unique(queryHits(RRACH_overlap_genesBins_peaks)))]
 
-# Build matrix of zeros
-hitsMatrix <- matrix(c(0), nrow = length(genesBins), ncol = length(files) + 1)
-colnames(hitsMatrix) <- c("Gold_standard", basename(files))
-row.names(hitsMatrix) <- c(1:nrow(hitsMatrix))
-
-# Overlap between peaks of gold_standard and genome binned
-peaks_overlap <- as.matrix(findOverlaps(query = peaks_granges, subject = genesBins, minoverlap = 1, type = "any"))
-hitsMatrix[peaks_overlap[, 2], "Gold_standard"] <- 1
-
-matrix_nanom6A <- hitsMatrix[,"Gold_standard"]
-names_nanom6A <- c()
-
-listF1score <- list()
-listPRcurves <- list()
-noise <- 0.000001
-threshold_default <- c(0.1, 0.05, 0.01, 0.05, 0.01, 0.001, 0.1, 0.5, 0.05, 0.02, 0.05, 0.9)
-names(threshold_default) <- c("dena_output.bed", "differr_output.bed", "drummer_output.bed", "yanocomp_output.bed", "nanocompore_output.bed", "eligos_output.bed", 
-                                  "epinanoErr_output.bed", "epinanoSvm_output.bed", "xpore_output.bed", "nanodoc_output.bed", "tomboComparison_output.bed", "m6anet_output.bed")
-
-for (y in files) {
-  x <- basename(y)
-  cat(y)
-  recall <- c()
-  precision <- c()
-  # Extraction of bed file + convertion to granges
-  bed_file <- read.table(y, header = T, sep = "\t")
-  granges <- makeGRangesFromDataFrame(bed_file, keep.extra.columns = T)
-  # Overlap between m6A detected site of each tool and genome binned
-  overlap <- as.matrix(findOverlaps(query = granges, subject = genesBins, minoverlap = 1, type = "any"))
-  if (grepl(x, pattern = paste0(c("dena","drummer","differr","yanocomp","nanocompore","eligos","epinanoErr",
-                                  "epinanoSvm","xpore","nanodoc","tomboComparison", "m6anet"), collapse = "|"))) {
-    # Add column of filtering parameter
-    filtering_parameter <- bed_file[overlap[,"queryHits"] , 6]
-    overlap_w_parameter <- cbind(overlap, filtering_parameter)
-    default <- unname(threshold_default[grep(x, pattern = paste0(c("dena","drummer","differr","yanocomp","nanocompore","eligos","epinanoErr","epinanoSvm",
-                                                                                                                                "xpore","nanodoc","tomboComparison", "m6anet"), collapse = "|"), value = T)])
-    # Recognize from the name of the tool if we need to keep the maximum or minimum value (when there are more hits in a single bin)
-    if(grepl(x, pattern = listmax)) { 
-      score <- sapply(split(overlap_w_parameter[,3], overlap_w_parameter[,2]), max) + noise
-      default_thr <- default
-    } else {
-      score <- -1*sapply(split(overlap_w_parameter[,3], overlap_w_parameter[,2]), min) - noise
-      default_thr <- - default
-    }
-    hitsMatrix[, x] <- rep((min(score) - noise), length(genesBins))
-    hitsMatrix[names(score), x] <- score
-    positive <- hitsMatrix[which(hitsMatrix[,"Gold_standard"] == 1), x]
-    negative <- hitsMatrix[which(hitsMatrix[,"Gold_standard"] == 0), x]
-    #par(mfrow = c(2, 1))
-    #pdf(file = paste0(x,"_scores_distribution.pdf"))
-    #hist(positive, main = paste0(x, " - Scores for positive peaks"))
-    #hist(negative, main = paste0(x, " - Scores for negative peaks"))
-    #dev.off()
-    pr <- pr.curve(scores.class0 = unname(positive), scores.class1 = unname(negative), curve=T, rand.compute=TRUE)
-    pdf(file = paste0(resultsFolder, x,"_PRcurve.pdf"), width = 8, height = 8)
-    plot(pr, main = paste0(x, " Precision-Recall curve"), rand.plot=TRUE)
-    dev.off()
-    listPRcurves[[x]] <- pr
-    # Plot "manual" PR curve
-    thresholds <- c(seq(from = min(score), to = max(score), length.out = 10000), default_thr)
-    for (t in 1:length(thresholds)) {
-      thr <- thresholds[t]
-      TP <- length(which(positive >= thr))
-      FN <- length(which(positive < thr))
-      FP <- length(which(negative >= thr))
-      TN <- length(which(negative < thr))
-      recall <- c(recall, TP/(TP + FN))
-      precision <- c(precision, TP/(TP + FP))
-    }
-    names(recall) <- thresholds
-    names(precision) <- thresholds
-    # F1 score
-    F1score <- 2*(precision[as.character(default_thr)]*recall[as.character(default_thr)])/(precision[as.character(default_thr)]+recall[as.character(default_thr)])
-    listF1score[[x]] <- F1score 
-    #pdf(paste0(x, "_PRcurve_manual.pdf"))
-    #plot(recall, precision, main = paste0(x, " - PR manual"), type = "l", xlim = c(0, 1), ylim = c(0, 1))
-    #dev.off()
-  } 
-  else if (grepl(x, pattern = "mines")) {
-    hitsMatrix[overlap[, 2], x] <- 1
-    TP <- 0
-    for (y in 1:nrow(hitsMatrix)){
-      if ((hitsMatrix[y, "Gold_standard"] == 1) && (hitsMatrix[y, x] == 1)){
-        TP <- TP + 1
+Run_statistical_analysis <- function(genesBins_par, peaks_par, files_par, notes = "", w) {
+  # Build matrix of zeros
+  hitsMatrix <- matrix(c(0), nrow = length(genesBins_par), ncol = length(files_par) + 1)
+  colnames(hitsMatrix) <- c("Gold_standard", basename(files_par))
+  row.names(hitsMatrix) <- c(1:nrow(hitsMatrix))
+  
+  peaks_overlap <- findOverlaps(query = peaks_par, subject = genesBins_par, minoverlap = 1, type = "any")
+  hitsMatrix[unique(subjectHits(peaks_overlap)), "Gold_standard"] <- 1
+  
+  matrix_nanom6A <- hitsMatrix[,"Gold_standard"]
+  names_nanom6A <- c()
+  
+  listF1score <- list()
+  listPRcurves <- list()
+  
+  for (y in files) {
+    x <- basename(y)
+    cat(sprintf("Processing file: %s\n", y))
+    recall <- c()
+    precision <- c()
+    # Extraction of bed file + convertion to granges
+    bed_file <- read.table(y, header = T, sep = "\t")
+    granges <- makeGRangesFromDataFrame(bed_file, keep.extra.columns = T)
+    # Overlap between m6A detected site of each tool and genome binned
+    overlap <- as.matrix(findOverlaps(query = granges, subject = genesBins_par, minoverlap = 1, type = "any"))
+    if (grepl(x, pattern = paste0(c("dena","drummer","differr","yanocomp","nanocompore","eligos","epinanoErr",
+                                    "epinanoSvm","xpore","nanodoc","tomboComparison", "m6anet"), collapse = "|"))) {
+      # Add column of filtering parameter
+      filtering_parameter <- bed_file[overlap[,"queryHits"] , 6]
+      overlap_w_parameter <- cbind(overlap, filtering_parameter)
+      default <- unname(threshold_default[grep(x, pattern = paste0(c("dena","drummer","differr","yanocomp","nanocompore","eligos","epinanoErr","epinanoSvm",
+                                                                     "xpore","nanodoc","tomboComparison", "m6anet"), collapse = "|"), value = T)])
+      # Recognize from the name of the tool if we need to keep the maximum or minimum value (when there are more hits in a single bin)
+      if(grepl(x, pattern = listmax)) { 
+        score <- sapply(split(overlap_w_parameter[,3], overlap_w_parameter[,2]), max) + noise
+        default_thr <- default
+      } else {
+        score <- -1*sapply(split(overlap_w_parameter[,3], overlap_w_parameter[,2]), min) - noise
+        default_thr <- - default
       }
-    }
-    # Recall + Precision
-    totPositiveGS <- count(hitsMatrix[, "Gold_standard"] == 1)
-    totPositiveTool <- count(hitsMatrix[, x] == 1)
-    recall <- TP/totPositiveGS
-    precision <- TP/totPositiveTool
-    # F1 score
-    F1score <- 2*(precision*recall)/(precision+recall)
-    names(F1score) <- "default"
-    listF1score[[x]] <- F1score
-  } 
-  else if (grepl(x, pattern = "nanom6a")) {
-    hitsMatrix[overlap[, 2], x] <- 1
-    matrix_nanom6A <- cbind(matrix_nanom6A, hitsMatrix[, x])
-    names_nanom6A <- c(names_nanom6A, x)
-    if (grepl(x, pattern = "0.5")){
+      hitsMatrix[, x] <- rep((min(score) - noise), length(genesBins_par))
+      hitsMatrix[names(score), x] <- score
+      positive <- hitsMatrix[which(hitsMatrix[,"Gold_standard"] == 1), x]
+      negative <- hitsMatrix[which(hitsMatrix[,"Gold_standard"] == 0), x]
+      #par(mfrow = c(2, 1))
+      #pdf(file = paste0(x,"_scores_distribution.pdf"))
+      #hist(positive, main = paste0(x, " - Scores for positive peaks"))
+      #hist(negative, main = paste0(x, " - Scores for negative peaks"))
+      #dev.off()
+      if (length(negative) > 0) {
+        pr <- pr.curve(scores.class0 = unname(positive), scores.class1 = unname(negative), curve=T, rand.compute=TRUE)
+        pdf(file = paste0(resultsFolder, "/", x,"_PRcurve", notes, "_window_", w, "bp.pdf"), width = 8, height = 8)
+        plot(pr, main = paste0(x, " Precision-Recall curve"), rand.plot=TRUE)
+        dev.off()
+        listPRcurves[[x]] <- pr
+      } else {
+        cat(sprintf("All genome bins include peaks, skipping PR curve plotting for file %s\n", x))
+      }
+      # Plot "manual" PR curve
+      thresholds <- c(seq(from = min(score), to = max(score), length.out = 10000), default_thr)
+      for (t in 1:length(thresholds)) {
+        thr <- thresholds[t]
+        TP <- length(which(positive >= thr))
+        FN <- length(which(positive < thr))
+        FP <- length(which(negative >= thr))
+        TN <- length(which(negative < thr))
+        recall <- c(recall, TP/(TP + FN))
+        precision <- c(precision, TP/(TP + FP))
+      }
+      names(recall) <- thresholds
+      names(precision) <- thresholds
+      # F1 score
+      F1score <- 2*(precision[as.character(default_thr)]*recall[as.character(default_thr)])/(precision[as.character(default_thr)]+recall[as.character(default_thr)])
+      listF1score[[x]] <- F1score 
+      #pdf(paste0(x, "_PRcurve_manual.pdf"))
+      #plot(recall, precision, main = paste0(x, " - PR manual"), type = "l", xlim = c(0, 1), ylim = c(0, 1))
+      #dev.off()
+    } 
+    else if (grepl(x, pattern = "mines")) {
+      hitsMatrix[overlap[, 2], x] <- 1
       TP <- 0
       for (y in 1:nrow(hitsMatrix)){
         if ((hitsMatrix[y, "Gold_standard"] == 1) && (hitsMatrix[y, x] == 1)){
@@ -188,69 +191,107 @@ for (y in files) {
         }
       }
       # Recall + Precision
-      totPositiveGS <- count(hitsMatrix[, "Gold_standard"] == 1)
-      totPositiveTool <- count(hitsMatrix[, x] == 1)
+      totPositiveGS <- length(which(hitsMatrix[, "Gold_standard"] == 1))
+      totPositiveTool <- length(which(hitsMatrix[, x] == 1))
       recall <- TP/totPositiveGS
       precision <- TP/totPositiveTool
       # F1 score
       F1score <- 2*(precision*recall)/(precision+recall)
       names(F1score) <- "default"
       listF1score[[x]] <- F1score
+    } 
+    else if (grepl(x, pattern = "nanom6a")) {
+      hitsMatrix[overlap[, 2], x] <- 1
+      matrix_nanom6A <- cbind(matrix_nanom6A, hitsMatrix[, x])
+      names_nanom6A <- c(names_nanom6A, x)
+      if (grepl(x, pattern = "0.5")){
+        TP <- 0
+        for (y in 1:nrow(hitsMatrix)){
+          if ((hitsMatrix[y, "Gold_standard"] == 1) && (hitsMatrix[y, x] == 1)){
+            TP <- TP + 1
+          }
+        }
+        # Recall + Precision
+        totPositiveGS <- length(which(hitsMatrix[, "Gold_standard"] == 1))
+        totPositiveTool <- length(which(hitsMatrix[, x] == 1))
+        recall <- TP/totPositiveGS
+        precision <- TP/totPositiveTool
+        # F1 score
+        F1score <- 2*(precision*recall)/(precision+recall)
+        names(F1score) <- "default"
+        listF1score[[x]] <- F1score
       }
     }
-}
-
-### Code for PR curve nanom6A which has multiple files each run with a different threshold
-names_nanom6A <- str_extract(names_nanom6A, "[0-9]\\.[0-9]*")
-colnames(matrix_nanom6A) <- c("GS", names_nanom6A)
-
-max_thr <- c()
-short <- matrix_nanom6A[,2:ncol(matrix_nanom6A)]
-
-for (row in 1:nrow(short)) {
-  v <- c()
-  if (sum(short[row,]) != 0){
-    for (col in 1:ncol(short)) {
-      if(short[row,col] == 1){
-        v <- c(v, as.numeric(colnames(short)[col]))
+  }
+  
+  ### Code for PR curve nanom6A which has multiple files each run with a different threshold
+  names_nanom6A <- str_extract(names_nanom6A, "[0-9]\\.[0-9]*")
+  colnames(matrix_nanom6A) <- c("GS", names_nanom6A)
+  
+  max_thr <- c()
+  short <- matrix_nanom6A[,2:ncol(matrix_nanom6A)]
+  if (length(which(short == 0)) > 0) {
+    for (row in 1:nrow(short)) {
+      v <- c()
+      if (sum(short[row,]) != 0){
+        for (col in 1:ncol(short)) {
+          if(short[row,col] == 1){
+            v <- c(v, as.numeric(colnames(short)[col]))
+          }
+        }
+        max <- max(v)
+        max_thr <- c(max_thr, max)
+      } 
+      else{
+        max_thr <- c(max_thr, 0)
       }
     }
-    max <- max(v)
-    max_thr <- c(max_thr, max)
-  } 
-  else{
-    max_thr <- c(max_thr, 0)
+    
+    new_matrix <- cbind(matrix_nanom6A, max_thr)
+    posit <- new_matrix[which(new_matrix[, "GS"] == 1), "max_thr"]
+    negat <- new_matrix[which(new_matrix[, "GS"] == 0), "max_thr"]
+    
+    pr <- pr.curve(posit, negat, curve = T, rand.compute=TRUE)
+    pdf(file = paste0(resultsFolder, "/nanom6A_PRcurve", notes, "_window_", w, "bp.pdf"), width = 8, height = 8)
+    plot(pr, main = "nanom6A Precision-Recall curve", rand.plot=TRUE)
+    dev.off()
+    listPRcurves[["nanom6A_output.bed"]] <- pr
+    #par(mfrow = c(2, 1))
+    #pdf(file = paste0(resultsFolder, "nanom6A_scores_distribution.pdf"))
+    #hist(posit, 100,main = "nanom6A - Scores for positive peaks")
+    #hist(negat, 100,main = "nanom6A - Scores for negative peaks")
+    #dev.off()
+  } else {
+    cat("All genome bins include peaks, skipping PR curve plotting for tool nanom6a\n")
   }
+  ### Save list of F1 scores
+  capture.output(listF1score, file = paste0(resultsFolder, "/F1score_list_deault", notes, "_window_", w, "bp.csv"))
+  
+  if (length(negative) > 0) {
+    ### Plot all the Precision-Recall curves together
+    col <- c(7,8,420,153,31,100,33,47,53,62,400,454,28,10)
+    
+    pdf(file = paste0(resultsFolder, "/Summary_PR_curves", notes, "_window_", w, "bp.pdf"), width = 8, height = 8)
+    for (x in 1:length(listPRcurves)) {
+      if (x == 1){
+        plot(listPRcurves[[x]], color = colors()[col[x]], main = "Summary PR curves", rand.plot=TRUE)
+      }
+      else{
+        plot(listPRcurves[[x]], add = T, color = colors()[col[x]], main = "Summary PR curves")
+      }
+    }
+    legend("bottomright", legend = names(listPRcurves), col = colors()[col[1:length(listPRcurves)]], lty=1:1, cex=0.8, bg = "lightblue" )
+    dev.off()
+  } else {
+    cat("All genome bins include peaks, skipping summary PR curve plotting\n")
+  }
+  return(list(hitsMatrix, listF1score))
 }
 
-new_matrix <- cbind(matrix_nanom6A, max_thr)
-posit <- new_matrix[which(new_matrix[, "GS"] == 1), "max_thr"]
-negat <- new_matrix[which(new_matrix[, "GS"] == 0), "max_thr"]
+results <- Run_statistical_analysis(genesBins_par = genesBins, peaks_par = peaks_granges, files_par = files, notes = "", w = w)
+hitsMatrix <- results[[1]]
+listF1score <- results[[2]]
+results_RRACH <- Run_statistical_analysis(genesBins_par = genesBins_RRACH, peaks_par = peaks_RRACH_granges, files_par = files, notes = "_RRACH", w = w)
+hitsMatrix_RRACH <- results_RRACH[[1]]
+listF1score_RRACH <- results_RRACH[[2]]
 
-pr <- pr.curve(posit, negat, curve = T, rand.compute=TRUE)
-pdf(file = paste0(resultsFolder, "nanom6A_PRcurve.pdf"), width = 8, height = 8)
-plot(pr, main = "nanom6A Precision-Recall curve", rand.plot=TRUE)
-dev.off()
-listPRcurves[["nanom6A_output.bed"]] <- pr
-#par(mfrow = c(2, 1))
-#pdf(file = paste0(resultsFolder, "nanom6A_scores_distribution.pdf"))
-#hist(posit, 100,main = "nanom6A - Scores for positive peaks")
-#hist(negat, 100,main = "nanom6A - Scores for negative peaks")
-#dev.off()
-
-### Save list of F1 scores
-capture.output(listF1score, file = paste0(resultsFolder, "F1score_list.csv"))
-
-### Plot all the Precision-Recall curves together
-col <- c(7,8,420,153,31,100,33,47,53,62,400,454,28,10)
-pdf(file = paste0(resultsFolder, "Summary_PR_curves.pdf"), width = 8, height = 8)
-for (x in 1:length(listPRcurves)) {
-  if (x == 1){
-    plot(listPRcurves[[x]], color = colors()[col[x]], main = "Summary PR curves", rand.plot=TRUE)
-  }
-  else{
-    plot(listPRcurves[[x]], add = T, color = colors()[col[x]], main = "Summary PR curves")
-  }
-}
-legend("bottomright", legend = names(listPRcurves), col = colors()[col[1:length(listPRcurves)]], lty=1:1, cex=0.8, bg = "lightblue" )
-dev.off()
