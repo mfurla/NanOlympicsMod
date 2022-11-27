@@ -69,7 +69,7 @@ output_processing <- function(tool, path_folder, output_file, filtering_paramete
               while(any(unlist(lapply(tmp, is.null)))) {
                 cat(sprintf("Starting new iteration for dena; %d sites missing\n", length(which(unlist(lapply(tmp, is.null))))))
                 tmp1 <- tmp1[ind_retry]
-                tmp1 <- mclapply(test_dena_split, function(x) {
+                tmp1 <- mclapply(test_dena_split[ind_retry], function(x) {
                   tryCatch({
                     coordinate_dena_unlisted <- unlist(transcriptToGenome(x, edb))
                     return(coordinate_dena_unlisted)
@@ -226,7 +226,7 @@ output_processing <- function(tool, path_folder, output_file, filtering_paramete
               while(any(unlist(lapply(tmp, is.null)))) {
                 cat(sprintf("Starting new iteration for mines; %d sites missing\n", length(which(unlist(lapply(tmp, is.null))))))
                 tmp1 <- tmp1[ind_retry]
-                tmp1 <- mclapply(test_mines_split, function(x) {
+                tmp1 <- mclapply(test_mines_split[ind_retry], function(x) {
                   tryCatch({
                     coordinate_mines_unlisted <- unlist(transcriptToGenome(x, edb))
                     return(coordinate_mines_unlisted)
@@ -479,7 +479,6 @@ output_processing <- function(tool, path_folder, output_file, filtering_paramete
               ind_retry <- 1:length(test_tombo_split)
               while(any(unlist(lapply(tmp, is.null)))) {
                 cat(sprintf("Starting new iteration for Tombo; %d sites missing\n", length(which(unlist(lapply(tmp, is.null))))))
-                length(which(unlist(lapply(tmp, is.null))))
                 tmp1 <- tmp1[ind_retry]
                 tmp1 <- mclapply(test_tombo_split[ind_retry], function(x) {
                   tryCatch({
@@ -550,7 +549,7 @@ output_processing <- function(tool, path_folder, output_file, filtering_paramete
               while(any(unlist(lapply(tmp, is.null)))) {
                 cat(sprintf("Starting new iteration for m6Anet; %d sites missing\n", length(which(unlist(lapply(tmp, is.null))))))
                 tmp1 <- tmp1[ind_retry]
-                tmp1 <- mclapply(test_m6anet_split, function(x) {
+                tmp1 <- mclapply(test_m6anet_split[ind_retry], function(x) {
                   tryCatch({
                     coordinate_m6anet_unlisted <- unlist(transcriptToGenome(x, edb))
                     return(coordinate_m6anet_unlisted)
