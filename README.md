@@ -19,7 +19,7 @@ chmod 755 *
 
 ## Usage
 
-The bproject pipeline requires you to open pipeline.conf configuration file and set the desired options. Then, you can run the pipeline using singularity  just specifying a value for the -profile variable.
+The bproject pipeline requires you to open pipeline.conf configuration file and set the desired options.
 ```
    Usage:
    nextflow -c pipeline.conf run pipeline.nf --samples="/path/to/samples.txt" --resultsDir="/path/to/resultsDir" 
