@@ -1,4 +1,50 @@
 #!/usr/bin/env nextflow
+/*
+========================================================================================
+                         mfurla/bproject
+========================================================================================
+ mfurla/bproject analysis pipeline.
+ #### Homepage / Documentation
+ https://github.com/mfurla/bproject
+----------------------------------------------------------------------------------------
+*/
+def helpMessage() {
+        log.info"""
+    Usage:
+    nextflow -c pipeline.conf run pipeline.nf --samples="/path/to/samples.txt" --resultsDir="/path/to/resultsDir" 
+    Mandatory arguments which may be specified in the pipeline.conf file
+	--samples                                                                                Path to the tab-separated sample file including sample name, condition and path to base-called fast5 folder
+	--test_condition                                                                         Condition that we are interested to profile (e. g. 'WT')
+	--resultsDir                                                                             Path to a folder where to store results
+	--fast5_slot                                                                             FAST5 slot containing the basecalled bases
+	--fast5_slot_id                                                                          FAST5 slot containing the basecalled bases (redundant)
+	--tombo_slot                                                                             FAST5 slot containing the resquiggled data
+	--tombo_subslot                                                                          FAST5 slot containing the resquiggled data
+	--transcriptome_fasta                                                                    Path to the transcriptome fasta file
+	--transcriptome_fai                                                                      Path to the transcriptome fasta index file
+	--genome_fasta                                                                           Path to the genome fasta file
+	--genome_fai                                                                             Path to the genome fasta index file
+	--genes2transcripts                                                                      Path to gene-to-transcripts file for Nanom6A
+	--transcriptomebed                                                                       Path to transcripts bed file
+	--genesbed                                                                               Path to genes bed file
+	--gtf                                                                                    Path to genome annotation gtf file
+	--nanom6AP                                                                               nanom6A probability thresholds for PR curve plotting
+	--yanocompFDR                                                                            yanocomp FDR threshold
+	--differrFDR                                                                             differr FDR threshold
+	--drummerPval                                                                            drummer Pvalue threshold
+	--epinanoErrorSumErr                                                                     epinanoError threshold sum of errors
+	--epinanoErrorResiduals                                                                  epinanoError threshold residuals
+	--postprocessingScript                                                                   Path to postprocessing R script
+	--threshold                                                                              Set of thresholds to use for the filtering of m6A sites (choose between 'default' and 'relaxed') 
+	--peaksfile                                                                              Path to bed file with set of m6A gold-standard peaks
+    """.stripIndent()
+}
+
+// Show help message
+if (params.help) {
+    helpMessage()
+    exit 0
+}
 
 // Input of sample names, conditions, and FAST5s path.
 Channel
@@ -1116,8 +1162,8 @@ process postprocessing {
 	mkdir -p ${params.resultsDir}/output_bed_files/
 	mkdir -p ${params.resultsDir}/output_statistical/
 
-	Rscript ${params.postprocessingScript} path=${params.resultsDir} genomebed=${params.genomebed} genomegtf=${params.gtf} resultsFolder=${params.resultsDir}/output_bed_files/ mccores=${task.cpus} threshold=${params.threshold} pathdena=${params.test_condition}/dena pathdrummer=drummer pathdifferr=differr pathyanocomp=yanocomp pathmines=${params.test_condition}/mines pathnanocompore=nanocompore patheligos=eligos/merged pathepinanoError=epinanoError pathepinanoSVM=${params.test_condition}/epinanoSVM pathxpore=xpore pathnanodoc=nanodoc pathnanom6a=${params.test_condition}/nanom6a/result_final pathtomboComparison=tomboComparison pathm6anet=m6anet
-        Rscript ${params.statisticalAnalysis} bed_folder=${params.resultsDir}/output_bed_files genomebed=${params.genomebed} genomegtf=${params.gtf} genesbed=${params.genesbed} resultsFolder=${params.resultsDir}/output_statistical/ mccores=${task.cpus} peaks=${params.peaksfile} binLength=${params.binLength} genomefile=${params.genome_fasta}
+	Rscript ${params.postprocessingScript} path=${params.resultsDir} genomebed=${params.genesbed} genomegtf=${params.gtf} resultsFolder=${params.resultsDir}/output_bed_files/ mccores=${task.cpus} threshold=${params.threshold} pathdena=${params.test_condition}/dena pathdrummer=drummer pathdifferr=differr pathyanocomp=yanocomp pathmines=${params.test_condition}/mines pathnanocompore=nanocompore patheligos=eligos/merged pathepinanoError=epinanoError pathepinanoSVM=${params.test_condition}/epinanoSVM pathxpore=xpore pathnanodoc=nanodoc pathnanom6a=${params.test_condition}/nanom6a/result_final pathtomboComparison=tomboComparison pathm6anet=m6anet
+        Rscript ${params.statisticalAnalysis} bed_folder=${params.resultsDir}/output_bed_files genomegtf=${params.gtf} genesbed=${params.genesbed} resultsFolder=${params.resultsDir}/output_statistical/ mccores=${task.cpus} peaks=${params.peaksfile} binLength=${params.binLength} genomefile=${params.genome_fasta}
 
     """
 	else
