@@ -38,6 +38,7 @@ def helpMessage() {
         --epinanoErrorResiduals                                  epinanoError threshold residuals
         --postprocessingScript                                   Path to postprocessing R script
         --statisticalAnalysis                                    Path to statistical_analysis R script
+        --binLength                                              Size of windows for genome binning
         --threshold                                              Set of thresholds to use for the filtering of m6A sites (choose between 'default' and 'relaxed')
         --peaksfile                                              Path to bed file with set of m6A gold-standard peaks
     """.stripIndent()
