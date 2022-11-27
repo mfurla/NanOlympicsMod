@@ -219,7 +219,7 @@ output_processing <- function(tool, path_folder, output_file, filtering_paramete
               }
               
               tmp1 <- vector(mode = "list", length = length(test_mines_split))
-              names(tmp1) <- 1:length(test_m6anet_split)
+              names(tmp1) <- 1:length(test_mines_split)
               tmp <- vector(mode = "list", length = length(test_mines_split))
               names(tmp) <- 1:length(test_mines_split)
               ind_retry <- 1:length(test_mines_split)
