@@ -53,12 +53,12 @@ output_processing <- function(tool, path_folder, output_file, filtering_paramete
               # Lift-over + output bed file
               test_dena <- IRanges(start = dena[,2], end = dena[,3], names = c(dena[,1]))
               
-              num_reads_chunk <- 1
+              num_rows_chunk <- 1
               mc.cores <- as.numeric(mccores)
-              if (length(test_dena) < num_reads_chunk) {
+              if (length(test_dena) < num_rows_chunk) {
                 test_dena_split <- list(test_dena)
               } else {
-                test_dena_split <- split(test_dena, rep(seq(from = 1, to = ceiling(length(test_dena)/num_reads_chunk)), each = num_reads_chunk)[1:length(test_dena)])
+                test_dena_split <- split(test_dena, rep(seq(from = 1, to = ceiling(length(test_dena)/num_rows_chunk)), each = num_rows_chunk)[1:length(test_dena)])
               }
               
               tmp1 <- vector(mode = "list", length = length(test_dena_split))
@@ -210,12 +210,12 @@ output_processing <- function(tool, path_folder, output_file, filtering_paramete
               # Lift-over + output bed
               test_mines <- IRanges(start = mines[,2], end = mines[,3], names = c(mines[,1]))
               
-              num_reads_chunk <- 1
+              num_rows_chunk <- 1
               mc.cores <- as.numeric(mccores)
-              if (length(test_mines) < num_reads_chunk) {
+              if (length(test_mines) < num_rows_chunk) {
                 test_mines_split <- list(test_mines)
               } else {
-                test_mines_split <- split(test_mines, rep(seq(from = 1, to = ceiling(length(test_mines)/num_reads_chunk)), each = num_reads_chunk)[1:length(test_mines)])
+                test_mines_split <- split(test_mines, rep(seq(from = 1, to = ceiling(length(test_mines)/num_rows_chunk)), each = num_rows_chunk)[1:length(test_mines)])
               }
               
               tmp1 <- vector(mode = "list", length = length(test_mines_split))
@@ -464,12 +464,12 @@ output_processing <- function(tool, path_folder, output_file, filtering_paramete
               # Lift-over + Creation of bed file
               test_tombo <- IRanges(start = as.numeric(tombo[,2]), end = as.numeric(tombo[,3]), names = c(tombo[,1]))
               
-              num_reads_chunk <- 1
+              num_rows_chunk <- 1
               mc.cores <- as.numeric(mccores)
-              if (length(test_tombo) < num_reads_chunk) {
+              if (length(test_tombo) < num_rows_chunk) {
                 test_tombo_split <- list(test_tombo)
               } else {
-                test_tombo_split <- split(test_tombo, rep(seq(from = 1, to = ceiling(length(test_tombo)/num_reads_chunk)), each = num_reads_chunk)[1:length(test_tombo)])
+                test_tombo_split <- split(test_tombo, rep(seq(from = 1, to = ceiling(length(test_tombo)/num_rows_chunk)), each = num_rows_chunk)[1:length(test_tombo)])
               }
               
               tmp1 <- vector(mode = "list", length = length(test_tombo_split))
@@ -533,12 +533,12 @@ output_processing <- function(tool, path_folder, output_file, filtering_paramete
               edb <- EnsDb(EnsDb)
               # Lift-over + output bed
               test_m6anet <- IRanges(start = m6anet[,2], end = m6anet[,3], names = c(m6anet[,1]))
-              num_reads_chunk <- 1
+              num_rows_chunk <- 1
               mc.cores <- as.numeric(mccores)
-              if (length(test_m6anet) < num_reads_chunk) {
+              if (length(test_m6anet) < num_rows_chunk) {
                 test_m6anet_split <- list(test_m6anet)
               } else {
-                test_m6anet_split <- split(test_m6anet, rep(seq(from = 1, to = ceiling(length(test_m6anet)/num_reads_chunk)), each = num_reads_chunk)[1:length(test_m6anet)])
+                test_m6anet_split <- split(test_m6anet, rep(seq(from = 1, to = ceiling(length(test_m6anet)/num_rows_chunk)), each = num_rows_chunk)[1:length(test_m6anet)])
               }
               
               tmp1 <- vector(mode = "list", length = length(test_m6anet_split))
