@@ -32,15 +32,10 @@ names(threshold_default) <- c("dena_output.bed", "differr_output.bed", "drummer_
                               "epinanoErr_output.bed", "epinanoSvm_output.bed", "xpore_output.bed", "nanodoc_output.bed", "tomboComparison_output.bed", "m6anet_output.bed")
 
 chrs <- readDNAStringSet(genomefile, format="fasta")
-RRACH <- c("AAACA","AAACT","AAACC","GAACA","GAACT","GAACC","GGACA","GGACT","GGACC","GAACA","GAACT","GAACC")
-RRACH_bed <- data.frame()
-
-for (x in RRACH) {
-  match <- as.data.frame(unlist(vmatchPattern(x, chrs)))
-  match$strand <- rep("+", nrow(match))
-  match <-match[,c(4,1,2,5)]
-  RRACH_bed <- rbind(RRACH_bed, match)
-}
+RRACH_plus <- GRanges(vmatchPattern(pattern = "RRACH", subject = chrs, fixed = "subject"), strand = "+")
+RRACH_minus <- GRanges(vmatchPattern(pattern = "DGTYY", subject = chrs, fixed = "subject"), strand = "-")
+RRACH <- c(RRACH_plus, RRACH_minus)
+RRACH_bed <- cbind(as.data.frame(seqnames(RRACH)), start(RRACH), end(RRACH), as.data.frame(strand(RRACH)))
 colnames(RRACH_bed) <- c("chr", "start", "end", "strand")
 #write.table(RRACH_bed, file = "RRACH_coords.bed", sep = "\t", quote = F, row.names = F)
 
