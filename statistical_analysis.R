@@ -260,7 +260,7 @@ Run_statistical_analysis <- function(genesBins_par, peaks_par, files_par, notes 
     cat("All genome bins include peaks, skipping PR curve plotting for tool nanom6a\n")
   }
   ### Save list of F1 scores
-  capture.output(listF1score, file = paste0(resultsFolder, "/F1score_list_deault", notes, "_window_", w, "bp.csv"))
+  capture.output(listF1score, file = paste0(resultsFolder, "/F1score_list_default", notes, "_window_", w, "bp.csv"))
   
   if (length(negative) > 0) {
     ### Plot all the Precision-Recall curves together
