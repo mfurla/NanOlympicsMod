@@ -226,21 +226,13 @@ Run_statistical_analysis <- function(genesBins_par, peaks_par, files_par, notes 
   max_thr <- c()
   short <- matrix_nanom6A[,2:ncol(matrix_nanom6A)]
   if (length(which(short == 0)) > 0) {
-    for (row in 1:nrow(short)) {
-      v <- c()
-      if (sum(short[row,]) != 0){
-        for (col in 1:ncol(short)) {
-          if(short[row,col] == 1){
-            v <- c(v, as.numeric(colnames(short)[col]))
-          }
-        }
-        max <- max(v)
-        max_thr <- c(max_thr, max)
-      } 
-      else{
-        max_thr <- c(max_thr, 0)
-      }
-    }
+    max_thr <- vector(length = nrow(short), mode = "numeric")
+    names(max_thr) <- rownames(short)
+    
+    short_nozero <- short[names(which(apply(short, 1, function(x) any(as.logical(x)) != 0 ))), ]
+    tmp <- apply(short_nozero, 1, function(x) {names(which(x == 1))[length(which(x == 1))]})
+    max_thr[names(tmp)] <- as.numeric(tmp)
+    max_thr <- unname(max_thr)
     
     new_matrix <- cbind(matrix_nanom6A, max_thr)
     posit <- new_matrix[which(new_matrix[, "GS"] == 1), "max_thr"]
@@ -289,4 +281,3 @@ listF1score <- results[[2]]
 results_RRACH <- Run_statistical_analysis(genesBins_par = genesBins_RRACH, peaks_par = peaks_RRACH_granges, files_par = files, notes = "_RRACH", w = w)
 hitsMatrix_RRACH <- results_RRACH[[1]]
 listF1score_RRACH <- results_RRACH[[2]]
-
