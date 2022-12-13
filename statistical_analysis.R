@@ -135,11 +135,13 @@ Run_statistical_analysis <- function(genesBins_par, peaks_par, files_par, notes 
       if(grepl(x, pattern = listmax)) { 
         score <- sapply(split(overlap_w_parameter[,3], overlap_w_parameter[,2]), max) + noise
         default_thr <- default
+        hitsMatrix[, x] <- rep(0, length(genesBins_par))
       } else {
         score <- -1*sapply(split(overlap_w_parameter[,3], overlap_w_parameter[,2]), min) - noise
         default_thr <- - default
+        hitsMatrix[, x] <- rep(-1, length(genesBins_par))
       }
-      hitsMatrix[, x] <- rep((min(score) - noise), length(genesBins_par))
+      #hitsMatrix[, x] <- rep((min(score) - noise), length(genesBins_par))
       hitsMatrix[names(score), x] <- score
       positive <- hitsMatrix[which(hitsMatrix[,"Gold_standard"] == 1), x]
       negative <- hitsMatrix[which(hitsMatrix[,"Gold_standard"] == 0), x]
