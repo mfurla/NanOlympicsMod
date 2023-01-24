@@ -19,6 +19,7 @@ library(parallel)
 library(PRROC)
 library(stringr)
 library(Biostrings)
+library(pheatmap)
 
 ## 1) Load all the output files from the output directory
 files <- list.files(bed_folder, full.names = TRUE, pattern = "\\.bed") # output_directory parameter from outside
@@ -26,7 +27,6 @@ files <- list.files(bed_folder, full.names = TRUE, pattern = "\\.bed") # output_
 listmax <- paste0(c("dena", "epinanoErr", "epinanoSvm", "nanodoc", "m6anet"), collapse = "|") # for these tools we need to maximize the filtering paramenter when there are more than 1 in a bin
 listmin <- paste0(c("differ", "drummer", "yanocomp", "nanocompore", "eligos", "xpore", "tomboComparison"), collapse = "|") # for these tools we need to minimize the filtering parameter
 
-noise <- 0.000001
 threshold_default <- c(0.1, 0.05, 0.01, 0.05, 0.01, 0.001, 0.1, 0.5, 0.05, 0.02, 0.05, 0.9)
 names(threshold_default) <- c("dena_output.bed", "differr_output.bed", "drummer_output.bed", "yanocomp_output.bed", "nanocompore_output.bed", "eligos_output.bed", 
                               "epinanoErr_output.bed", "epinanoSvm_output.bed", "xpore_output.bed", "nanodoc_output.bed", "tomboComparison_output.bed", "m6anet_output.bed")
@@ -41,7 +41,7 @@ colnames(RRACH_bed) <- c("chr", "start", "end", "strand")
 
 ## 2) Binning the genome in windows of length w
 w <- as.numeric(binLength) # binLength parameter from outside
-genesBed <- read.table(genesbed, sep = "\t") # bed_genome parameter from outside
+genesBed <- read.table(genesbed, sep = "\t") # genesbed parameter from outside
 colnames(genesBed) <- c("chr","start","end","name","score","strand")
 
 genesBinsList <- mclapply(1:nrow(genesBed),function(k) 
@@ -107,6 +107,11 @@ Run_statistical_analysis <- function(genesBins_par, peaks_par, files_par, notes 
   
   peaks_overlap <- findOverlaps(query = peaks_par, subject = genesBins_par, minoverlap = 1, type = "any")
   hitsMatrix[unique(subjectHits(peaks_overlap)), "Gold_standard"] <- 1
+  overlapMatrix <- hitsMatrix
+  ind_nodef <- setdiff(grep(x = colnames(overlapMatrix), pattern = "nanom6a"), grep(x = colnames(overlapMatrix), pattern = "nanom6a_output\\.bed_ratio\\.0\\.5"))
+  if (length(ind_nodef) > 0) {
+    overlapMatrix <- overlapMatrix[, -ind_nodef]
+  }
   
   matrix_nanom6A <- hitsMatrix[,"Gold_standard"]
   names_nanom6A <- c()
@@ -119,7 +124,7 @@ Run_statistical_analysis <- function(genesBins_par, peaks_par, files_par, notes 
     cat(sprintf("Processing file: %s\n", y))
     recall <- c()
     precision <- c()
-    # Extraction of bed file + convertion to granges
+    # Extraction of bed file + conversion to granges
     bed_file <- read.table(y, header = T, sep = "\t")
     granges <- makeGRangesFromDataFrame(bed_file, keep.extra.columns = T)
     # Overlap between m6A detected site of each tool and genome binned
@@ -133,16 +138,28 @@ Run_statistical_analysis <- function(genesBins_par, peaks_par, files_par, notes 
                                                                      "xpore","nanodoc","tomboComparison", "m6anet"), collapse = "|"), value = T)])
       # Recognize from the name of the tool if we need to keep the maximum or minimum value (when there are more hits in a single bin)
       if(grepl(x, pattern = listmax)) { 
-        score <- sapply(split(overlap_w_parameter[,3], overlap_w_parameter[,2]), max) + noise
+        score <- sapply(split(overlap_w_parameter[,3], overlap_w_parameter[,2]), max)
         default_thr <- default
         hitsMatrix[, x] <- rep(0, length(genesBins_par))
+        overlapMatrix[, x] <- rep(0, length(genesBins_par))
       } else {
-        score <- -1*sapply(split(overlap_w_parameter[,3], overlap_w_parameter[,2]), min) - noise
+        score <- -1*sapply(split(overlap_w_parameter[,3], overlap_w_parameter[,2]), min)
         default_thr <- - default
         hitsMatrix[, x] <- rep(-1, length(genesBins_par))
+        overlapMatrix[, x] <- rep(0, length(genesBins_par))
       }
+      #noise = 0.00001
       #hitsMatrix[, x] <- rep((min(score) - noise), length(genesBins_par))
+      
+      #assign score to hitsMatrix
       hitsMatrix[names(score), x] <- score
+      
+      #assign 0 or 1 value to overlapMatrix for undetected/detected peaks at default values
+      pred_pos_def <- which(hitsMatrix[, x] >= default_thr)
+      pred_neg_def <- which(hitsMatrix[, x] < default_thr)
+      overlapMatrix[pred_pos_def, x] <- 1
+      overlapMatrix[pred_neg_def, x] <- 0
+      
       positive <- hitsMatrix[which(hitsMatrix[,"Gold_standard"] == 1), x]
       negative <- hitsMatrix[which(hitsMatrix[,"Gold_standard"] == 0), x]
       #par(mfrow = c(2, 1))
@@ -161,14 +178,16 @@ Run_statistical_analysis <- function(genesBins_par, peaks_par, files_par, notes 
       }
       # Plot "manual" PR curve
       thresholds <- c(seq(from = min(score), to = max(score), length.out = 10000), default_thr)
+      recall <- seq(from = 0, to = 0, length.out = 10001)
+      precision <- seq(from = 0, to = 0, length.out = 10001)
       for (t in 1:length(thresholds)) {
         thr <- thresholds[t]
         TP <- length(which(positive >= thr))
         FN <- length(which(positive < thr))
         FP <- length(which(negative >= thr))
         TN <- length(which(negative < thr))
-        recall <- c(recall, TP/(TP + FN))
-        precision <- c(precision, TP/(TP + FP))
+        recall[t] <- TP/(TP + FN)
+        precision[t] <- TP/(TP + FP)
       }
       names(recall) <- thresholds
       names(precision) <- thresholds
@@ -181,6 +200,7 @@ Run_statistical_analysis <- function(genesBins_par, peaks_par, files_par, notes 
     } 
     else if (grepl(x, pattern = "mines")) {
       hitsMatrix[overlap[, 2], x] <- 1
+      overlapMatrix[overlap[, 2], x] <- 1
       TP <- 0
       for (y in 1:nrow(hitsMatrix)){
         if ((hitsMatrix[y, "Gold_standard"] == 1) && (hitsMatrix[y, x] == 1)){
@@ -202,6 +222,7 @@ Run_statistical_analysis <- function(genesBins_par, peaks_par, files_par, notes 
       matrix_nanom6A <- cbind(matrix_nanom6A, hitsMatrix[, x])
       names_nanom6A <- c(names_nanom6A, x)
       if (grepl(x, pattern = "0.5")){
+        overlapMatrix[overlap[, 2], x] <- 1
         TP <- 0
         for (y in 1:nrow(hitsMatrix)){
           if ((hitsMatrix[y, "Gold_standard"] == 1) && (hitsMatrix[y, x] == 1)){
@@ -274,12 +295,37 @@ Run_statistical_analysis <- function(genesBins_par, peaks_par, files_par, notes 
   } else {
     cat("All genome bins include peaks, skipping summary PR curve plotting\n")
   }
-  return(list(hitsMatrix, listF1score))
+  
+  colnames(overlapMatrix) <- gsub(pattern = "_output.*", replacement = "", x = colnames(overlapMatrix))
+  
+  data_ovlp <- matrix(data = 0, nrow = dim(overlapMatrix)[2], ncol = dim(overlapMatrix)[2])
+  tools <- colnames(overlapMatrix)
+  colnames(data_ovlp) <- tools
+  rownames(data_ovlp) <- tools
+  
+  for (i in tools) {
+    for (j in tools) {
+      data_ovlp[i, j] <- length(intersect(which(overlapMatrix[, i] == 1), which(overlapMatrix[, j] == 1)))/length(union(which(overlapMatrix[, i] == 1), which(overlapMatrix[, j] == 1)))
+    }
+  }
+  
+  pdf(paste0(resultsFolder, "/Tools_overlap_default_par", notes, "_window_", w, "bp.pdf"))
+  pheatmap(data_ovlp, cluster_rows = TRUE, cluster_cols = TRUE, show_rownames = TRUE, show_colnames = TRUE, fontsize = 15, display_numbers = TRUE)
+  dev.off()
+
+  return(list(hitsMatrix, overlapMatrix, listF1score, data_ovlp))
 }
 
 results <- Run_statistical_analysis(genesBins_par = genesBins, peaks_par = peaks_granges, files_par = files, notes = "", w = w)
 hitsMatrix <- results[[1]]
-listF1score <- results[[2]]
+overlapMatrix <- results[[2]]
+listF1score <- results[[3]]
+data_ovlp <- results[[4]]
+save(results, file = paste0(resultsFolder, "/Results_window_", w, "bp_results.rda"))
+
 results_RRACH <- Run_statistical_analysis(genesBins_par = genesBins_RRACH, peaks_par = peaks_RRACH_granges, files_par = files, notes = "_RRACH", w = w)
 hitsMatrix_RRACH <- results_RRACH[[1]]
-listF1score_RRACH <- results_RRACH[[2]]
+overlapMatrix <- results_RRACH[[2]]
+listF1score_RRACH <- results_RRACH[[3]]
+data_ovlp_RRACH <- results_RRACH[[4]]
+save(results_RRACH, file = paste0(resultsFolder, "/Results_window_", w, "bp_RRACH_results.rda"))
