@@ -26,7 +26,7 @@ output_processing <- function(tool, path_folder, output_file, filtering_paramete
                                                         && file.info(paste0(path_folder, "/", "differrOut.bed"))$size != 0){
               data_differr <- read.table(paste0(path_folder, "/", "differrOut.bed"))
               differr <- data_differr[, c(1:3, 6)]
-              differr$V2 <- differr$V2
+              differr$V2 <- differr$V2 + 1
               differr$V3 <- differr$V3
               differr <- cbind(differr, rep("Mod", nrow(differr)))
               differr <- cbind(differr, 10**(-data_differr$V5)) # Parameter of filtering is FDR not -log10(FDR)
@@ -43,7 +43,7 @@ output_processing <- function(tool, path_folder, output_file, filtering_paramete
                                                   && file.info(paste0(path_folder, "/", "dena_label.tsv"))$size != 0){
               data_dena <- read.table(paste0(path_folder, "/", "dena_label.tsv"))
               dena <- data_dena[, c(1,2,2,6,6)]
-              dena$V2 <- dena$V2 - 1
+              dena$V2 <- dena$V2
               dena$V2.1 <- dena$V2.1
               dena$V6 <- ifelse(!is.nan(dena$V6) & !is.na(dena$V6) & dena$V6 > filtering_parameter, "Mod", "Unmod")
               dena <- dena[which(dena$V6 == "Mod"), ]
@@ -123,9 +123,9 @@ output_processing <- function(tool, path_folder, output_file, filtering_paramete
                   data_drummer <- rbind(data_drummer, table)
                 }
               }
-              #drummer <- data_drummer[, c(1,2,2,5,5)] #ok if -m is not set to TRUE in DRUMMER command
-              drummer <- data_drummer[, c(1,2,2,7,7)]
-              drummer$position <- drummer$position - 1
+              drummer <- data_drummer[, c(1,2,2,5,5)] #ok if -m is not set to TRUE in DRUMMER command
+              #drummer <- data_drummer[, c(1,2,2,7,7)]
+              drummer$position <- drummer$position
               drummer$position.1 <- drummer$position.1
               drummer$max.G_padj <- rep("Mod", length(drummer$max.G_padj))
               drummer$strand <- rep("*", nrow(drummer))
@@ -143,6 +143,8 @@ output_processing <- function(tool, path_folder, output_file, filtering_paramete
                                                           && file.info(paste0(path_folder, "/", "yanocomp_output.bed"))$size != 0){
               data_yanocomp <- read.table(paste0(path_folder, "/", "yanocomp_output.bed"))
               yanocomp <- data_yanocomp[, c(1:3,6,9,9)]
+              yanocomp$V2 <- yanocomp$V2 + 2
+              yanocomp$V3 <- yanocomp$V2
               yanocomp$V9 <- rep("Mod", length(yanocomp$V9))
               colnames(yanocomp) <- c("Chr", "Start", "End", "Strand", "Status", "Score")
               write.table(yanocomp, file = output_file, quote = F, sep = "\t", row.names = F)
@@ -157,8 +159,8 @@ output_processing <- function(tool, path_folder, output_file, filtering_paramete
                                                                 && file.info(paste0(path_folder, "/", "outnanocompore_results.tsv"))$size != 0){
               data_nanocompore <- read.table(paste0(path_folder, "/", "outnanocompore_results.tsv"), header = TRUE)
               nanocompore <- data_nanocompore[, c(2,3,3,5,7,13,7)]
-              nanocompore$genomicPos <- nanocompore$genomicPos - 1
-              nanocompore$genomicPos.1 <- nanocompore$genomicPos.1
+              nanocompore$genomicPos <- nanocompore$genomicPos + 2
+              nanocompore$genomicPos.1 <- nanocompore$genomicPos.1 + 2
               nanocompore$Logit_LOR <- ifelse(nanocompore$Logit_LOR == "NC", NA, nanocompore$Logit_LOR)
               nanocompore$GMM_logit_pvalue <- ifelse(!is.nan(nanocompore$GMM_logit_pvalue) & !is.na(nanocompore$GMM_logit_pvalue) &
                                                        !is.nan(nanocompore$Logit_LOR) & !is.na(nanocompore$Logit_LOR) & 
@@ -181,7 +183,7 @@ output_processing <- function(tool, path_folder, output_file, filtering_paramete
               rows_eligos <- apply(data_eligos, 1, function(x){all(!is.na(x))})
               eligos <- data_eligos[which(rows_eligos),]
               eligos <- data_eligos[, c(1:4,18,16,18)]
-              eligos$start_loc <- eligos$start_loc
+              eligos$start_loc <- eligos$start_loc + 1
               eligos$end_loc <- eligos$end_loc
               eligos$adjPval <- ifelse(!is.nan(eligos$adjPval) & !is.na(eligos$adjPval) & 
                                          !is.nan(eligos$oddR) & !is.na(eligos$oddR) &
@@ -201,7 +203,7 @@ output_processing <- function(tool, path_folder, output_file, filtering_paramete
                                                     && file.info(paste0(path_folder, "/", "m6A_output_filename.bed"))$size != 0){
               data_mines <- read.table(paste0(path_folder, "/", "m6A_output_filename.bed")) 
               mines <- data_mines[, c(1:3,7,7)]
-              mines$V2 <- mines$V2
+              mines$V2 <- mines$V2 + 1
               mines$V3 <- mines$V3
               mines$V7 <- rep("Mod", length(mines$V7))
               # Creation Edb Database from genome GTF
@@ -285,7 +287,7 @@ output_processing <- function(tool, path_folder, output_file, filtering_paramete
               else {data_epinanoerr <- read.table(paste0(path_folder, "/minus/", "diffErr.delta-sum_err.prediction.csv"), header = TRUE, sep = ",")}
               
               epinanoerr <- data.frame("Chr" = sapply(data_epinanoerr$chr_pos, function(x){return(strsplit(x, split = " ")[[1]][1])}),
-                                       "Start" = sapply(data_epinanoerr$chr_pos, function(x){return(as.numeric(strsplit(x, split = " ")[[1]][2]) - 1)}),
+                                       "Start" = sapply(data_epinanoerr$chr_pos, function(x){return(as.numeric(strsplit(x, split = " ")[[1]][2]))}),
                                        "End" = sapply(data_epinanoerr$chr_pos, function(x){return(as.numeric(strsplit(x, split = " ")[[1]][2]))}),
                                        "Strand" = sapply(data_epinanoerr$chr_pos, function(x){return(strsplit(x, split = " ")[[1]][4])}),
                                        "Status" = data_epinanoerr$z_score_prediction,
@@ -316,11 +318,13 @@ output_processing <- function(tool, path_folder, output_file, filtering_paramete
               epinanosvm <- data.frame("Kmer" = data_epinanosvm$V1,
                                        "Chr" = data_epinanosvm$V3,
                                        "Start" = sapply(data_epinanosvm$V2, function(x){return(strsplit(x, split = "\\-")[[1]][1])}),
-                                       "End" = sapply(data_epinanosvm$V2, function(x){return(strsplit(x, split = "\\-")[[1]][2])}),
+                                       "End" = sapply(data_epinanosvm$V2, function(x){return(strsplit(x, split = "\\-")[[1]][1])}),
                                        "Strand" = data_epinanosvm$V4,
                                        "Status" = ifelse(data_epinanosvm$V28 > filtering_parameter, "Mod", "Unmod"), 
                                        "ProbM" = data_epinanosvm$V28
               )
+              epinanosvm$Start <- as.numeric(epinanosvm$Start) + 2
+              epinanosvm$End <- as.numeric(epinanosvm$End) + 2
               epinanosvm <- epinanosvm[which(epinanosvm$Kmer %in% rrach), ]
               epinanosvm <- epinanosvm[which(epinanosvm$Status == "Mod"), ]
               epinanosvm <- epinanosvm[, 2:7]
@@ -336,8 +340,8 @@ output_processing <- function(tool, path_folder, output_file, filtering_paramete
                                                     && file.info(paste0(path_folder, "/", "diffmod.table"))$size != 0){
               data_xpore <- read.table(paste0(path_folder, "/", "diffmod.table"), header = TRUE, sep=",") 
               xpore <- data.frame("GeneID" = data_xpore[,1],
-                                  "Start" = data_xpore[,2] - 1,
-                                  "End" = data_xpore[,2],
+                                  "Start" = data_xpore[,2] + 2,
+                                  "End" = data_xpore[,2] + 2,
                                   "Status" = p.adjust(data_xpore[,5], method = "BH"), # Adviced to use FDR instead of pvalue
                                   "FDR" = p.adjust(data_xpore[,5], method = "BH")
               )
@@ -368,7 +372,7 @@ output_processing <- function(tool, path_folder, output_file, filtering_paramete
               if (length(txt_files_df) != 0){
                 data_nanodoc <- do.call("rbind", lapply(txt_files_df, as.data.frame))
                 nanodoc <- data_nanodoc[,c(1,1,12,12,13)] 
-                nanodoc$V1 <- nanodoc$V1 - 1
+                nanodoc$V1 <- nanodoc$V1
                 nanodoc$V1.1 <- nanodoc$V1.1
                 nanodoc$V12 <- ifelse(!is.nan(nanodoc$V12) & !is.na(nanodoc$V12) & nanodoc$V12 > filtering_parameter, "Mod", "Unmod")
                 nanodoc <- nanodoc[which(nanodoc$V12 == "Mod"), ]
@@ -402,7 +406,7 @@ output_processing <- function(tool, path_folder, output_file, filtering_paramete
                       }
                       else {
                         if(data_nanom6a[row, col] != "" && !is.na(data_nanom6a[row, col])){
-                          start <- as.numeric(strsplit(data_nanom6a[row, col], split = "\\|")[[1]][1]) - 1
+                          start <- as.numeric(strsplit(data_nanom6a[row, col], split = "\\|")[[1]][1])
                           end <- as.numeric(strsplit(data_nanom6a[row, col], split = "\\|")[[1]][1])
                           mod_ratio <- strsplit(data_nanom6a[row, col], split = "\\|")[[1]][4]
                           x <- c(chr, geneID, start, end, mod_ratio, mod_ratio)
@@ -443,7 +447,7 @@ output_processing <- function(tool, path_folder, output_file, filtering_paramete
                     }
                   }
                   else if (col == 1){
-                    start <- as.numeric(data_tombo[row, col]) - 1 
+                    start <- as.numeric(data_tombo[row, col]) 
                     end <- as.numeric(data_tombo[row, col])
                   }
                   else if (col == 2){
@@ -508,6 +512,8 @@ output_processing <- function(tool, path_folder, output_file, filtering_paramete
               df_tombo$Status <- tombo[names_df_tombo, 4]
               df_tombo$Pvalue <- 10**(-as.numeric(tombo[names_df_tombo, 5])) # Parameter of filtering is Pvalue not -log10(Pvalue)
               df_tombo_final <- df_tombo[,c(1,2,3,4,8,9)]
+              df_tombo_final$V2 <- df_tombo_final$V2 + 1
+              df_tombo_final$V3	<- df_tombo_final$V3
               colnames(df_tombo_final) <- c("Chr", "Start", "End", "Strand", "Status", "Pvalue")
               write.table(df_tombo_final, file = output_file, quote = F, sep = "\t", row.names = F)
             }
@@ -521,8 +527,8 @@ output_processing <- function(tool, path_folder, output_file, filtering_paramete
                                                       && file.info(paste0(path_folder, "/", "data.result.csv"))$size != 0){
               data_m6anet <- read.table(paste0(path_folder, "/", "data.result.csv"), header = TRUE, sep=",") 
               m6anet <- data.frame("TranscriptID" = data_m6anet[,1],
-                                   "Start" = data_m6anet[,2] - 1,
-                                   "End" = data_m6anet[,2],
+                                   "Start" = data_m6anet[,2] + 2,
+                                   "End" = data_m6anet[,2] + 2,
                                    "Status" = data_m6anet[,4],
                                    "Prob_mod" = data_m6anet[,4]
               )
