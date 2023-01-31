@@ -123,7 +123,8 @@ output_processing <- function(tool, path_folder, output_file, filtering_paramete
                   data_drummer <- rbind(data_drummer, table)
                 }
               }
-              drummer <- data_drummer[, c(1,2,2,5,5)] #ok if -m is not set to TRUE in DRUMMER command
+              drummer <- data_drummer[, c("transcript_id", "position", "position", "max.G_padj", "max.G_padj")]
+              #drummer <- data_drummer[, c(1,2,2,5,5)] #ok if -m is not set to TRUE in DRUMMER command
               #drummer <- data_drummer[, c(1,2,2,7,7)]
               drummer$position <- drummer$position
               drummer$position.1 <- drummer$position.1
@@ -512,9 +513,9 @@ output_processing <- function(tool, path_folder, output_file, filtering_paramete
               df_tombo$Status <- tombo[names_df_tombo, 4]
               df_tombo$Pvalue <- 10**(-as.numeric(tombo[names_df_tombo, 5])) # Parameter of filtering is Pvalue not -log10(Pvalue)
               df_tombo_final <- df_tombo[,c(1,2,3,4,8,9)]
-              df_tombo_final$V2 <- df_tombo_final$V2 + 1
-              df_tombo_final$V3	<- df_tombo_final$V3
               colnames(df_tombo_final) <- c("Chr", "Start", "End", "Strand", "Status", "Pvalue")
+              df_tombo_final$Start <- df_tombo_final$Start + 1
+              df_tombo_final$End <- df_tombo_final$End
               write.table(df_tombo_final, file = output_file, quote = F, sep = "\t", row.names = F)
             }
               else {message(paste0(tool,"'s output files don't exist."))}
