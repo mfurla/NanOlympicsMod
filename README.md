@@ -37,7 +37,7 @@ The bproject pipeline requires you to open pipeline.conf configuration file and 
 --genome_fasta                                           Path to the genome fasta file
 --genome_fai                                             Path to the genome fasta index file
 --genes2transcripts                                      Path to gene-to-transcripts file for Nanom6A
---transcriptomebed                                       Path to transcripts bed file
+--transcriptomebed                                       Path to transcripts bed12 file
 --genesbed                                               Path to genes bed file
 --gtf                                                    Path to genome annotation gtf file
 --nanom6AP                                               nanom6A probability thresholds for PR curve plotting
