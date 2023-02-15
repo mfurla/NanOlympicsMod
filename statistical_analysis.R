@@ -342,7 +342,7 @@ Run_statistical_analysis <- function(genesBins_par, peaks_par, files_par, notes 
     }
   }
   pdf(paste0(resultsFolder, "/Tools_overlap_default_par", notes, "_window_", w, "bp.pdf"))
-  pheatmap(data_ovlp, cluster_rows = TRUE, cluster_cols = TRUE, show_rownames = TRUE, show_colnames = TRUE, fontsize = 15, display_numbers = TRUE)
+  pheatmap(data_ovlp, cluster_rows = FALSE, cluster_cols = FALSE, show_rownames = TRUE, show_colnames = TRUE, fontsize = 15, display_numbers = FALSE, color = colorRampPalette(c("white", "red"))(30))
   dev.off()
   return(list(hitsMatrix, overlapMatrix, Performances, data_ovlp))
 }
