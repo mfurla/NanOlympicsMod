@@ -27,8 +27,7 @@ files <- list.files(bed_folder, full.names = TRUE, pattern = "\\.bed") # output_
 listmax <- paste0(c("DENA", "EpiNano-Error", "EpiNano-SVM", "NanoDoc", "m6Anet"), collapse = "|") # for these tools we need to maximize the filtering paramenter when there are more than 1 in a bin
 listmin <- paste0(c("DiffErr", "DRUMMER", "Yanocomp", "Nanocompore", "ELIGOS", "xPore", "Tombo"), collapse = "|") # for these tools we need to minimize the filtering parameter
 
-
-threshold_default <- c(0.1, 0.05, 0.01, 0.05, 0.01, 0.001, 0.1, 0.5, 0.05, 0.02, 0.05, 0.9)
+threshold_default <- c(0.1, 0.05, 0.05, 0.05, 0.01, 1, 0.1, 0.5, 0.05, 0.02, 0.05, 0.9)
 names(threshold_default) <- c("DENA", "DiffErr", "DRUMMER", "Yanocomp", "Nanocompore", "ELIGOS", 
                               "EpiNano-Error", "EpiNano-SVM", "xPore", "NanoDoc", "Tombo", "m6Anet")
 
@@ -39,16 +38,6 @@ RRACH <- c(RRACH_plus, RRACH_minus)
 RRACH_bed <- cbind(as.data.frame(seqnames(RRACH)), start(RRACH), end(RRACH), as.data.frame(strand(RRACH)))
 colnames(RRACH_bed) <- c("chr", "start", "end", "strand")
 #write.table(RRACH_bed, file = "RRACH_coords.bed", sep = "\t", quote = F, row.names = F)
-
-if (!exists("highcov_bed_file")) {
-  highcov_GRanges <- NULL
-} else {
-  highcov_bed <- read.table(highcov_bed_file, sep = "\t", header = FALSE)
-  highcov_GRanges <- GRanges(seqnames = highcov_bed[, 1],
-                             ranges = IRanges(start = highcov_bed[, 2], end = highcov_bed[, 3]),
-                             strand = highcov_bed[, 6])
-  names(highcov_GRanges) <- highcov_bed[, 4]
-}
 
 ## 2) Binning the genome in windows of length w
 w <- as.numeric(binLength) # binLength parameter from outside
