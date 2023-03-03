@@ -616,7 +616,7 @@ pathTools <- c(pathdena, pathdrummer, pathdifferr, pathyanocomp, pathnanocompore
                , pathmines, pathepinanoError, pathepinanoSVM, pathxpore, pathnanodoc, pathnanom6a
                , pathtomboComparison, pathm6anet)
 
-default <- c(0.1, 0.05, 0.05, 0.05, 0.01, 1, NA, 0.1, 0.5, 0.05, 0.02, NA, 0.05, 0.9)
+default <- c(0.1, 0.05, 0.05, 0.05, 0.01, 0.0001, NA, 0.1, 0.5, 0.05, 0.02, NA, 0.05, 0.9)
 relaxed <- c(0, NA, NA, NA, 1, 1, NA, NA, 0, 1, 0, NA, 1, 0)
 value <- rep(threshold, length(default))
 

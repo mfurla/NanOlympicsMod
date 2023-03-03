@@ -27,7 +27,7 @@ files <- list.files(bed_folder, full.names = TRUE, pattern = "\\.bed") # output_
 listmax <- paste0(c("DENA", "EpiNano-Error", "EpiNano-SVM", "NanoDoc", "m6Anet"), collapse = "|") # for these tools we need to maximize the filtering paramenter when there are more than 1 in a bin
 listmin <- paste0(c("DiffErr", "DRUMMER", "Yanocomp", "Nanocompore", "ELIGOS", "xPore", "Tombo"), collapse = "|") # for these tools we need to minimize the filtering parameter
 
-threshold_default <- c(0.1, 0.05, 0.05, 0.05, 0.01, 1, 0.1, 0.5, 0.05, 0.02, 0.05, 0.9)
+threshold_default <- c(0.1, 0.05, 0.05, 0.05, 0.01, 0.0001, 0.1, 0.5, 0.05, 0.02, 0.05, 0.9)
 names(threshold_default) <- c("DENA", "DiffErr", "DRUMMER", "Yanocomp", "Nanocompore", "ELIGOS", 
                               "EpiNano-Error", "EpiNano-SVM", "xPore", "NanoDoc", "Tombo", "m6Anet")
 
@@ -384,3 +384,4 @@ if (!is.null(highcov_GRanges)) {
   data_ovlp_highcov_RRACH <- results_highcov_RRACH[[4]]
   save(results_highcov_RRACH, file = paste0(resultsFolder, "/Results_window_", w, "bp_highcov_RRACH.rda"))
 }
+
