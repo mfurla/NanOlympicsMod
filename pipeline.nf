@@ -1,11 +1,11 @@
 #!/usr/bin/env nextflow
 /*
 ========================================================================================
-                         mfurla/bproject
+                         mfurla/NanOlympicsMod
 ========================================================================================
- mfurla/bproject analysis pipeline.
+ mfurla/NanOlympicsMod analysis pipeline.
  #### Homepage / Documentation
- https://github.com/mfurla/bproject
+ https://github.com/mfurla/NanOlympicsMod
 ----------------------------------------------------------------------------------------
 */
 
