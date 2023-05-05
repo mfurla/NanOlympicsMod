@@ -1,4 +1,4 @@
-# bproject
+# NanOlympicsMod
 
 This repository contains the code developed for benchmarking m6A-detection tools based on Nanopore direct RNA sequencing.
 
@@ -12,14 +12,14 @@ This repository contains the code developed for benchmarking m6A-detection tools
 **Installation**
 
 ```
-git clone https://github.com/mfurla/bproject.git
-cd bproject
+git clone https://github.com/mfurla/NanOlympicsMod.git
+cd NanOlympicsMod
 chmod 755 *
 ```
 
 ## Usage
 
-The bproject pipeline requires you to open pipeline.conf configuration file and set the desired options.
+The NanOlympicsMod pipeline requires you to open pipeline.conf configuration file and set the desired options.
 ```
    Usage:
    nextflow -c pipeline.conf run pipeline.nf --samples="/path/to/samples.txt" --resultsDir="/path/to/resultsDir" 
