@@ -5,7 +5,14 @@ NanOlympicsMod is a Nextflow pipeline for running multiple m6A detection tools b
 <p align="center">
   <img src="NanOlympicsMod_logo.png" alt="drawing" width=200" title="NanOlympicsMod_logo">
 </p>
-                                                                                         
+
+## Repository content
+
+* Docker: folder containing the Dockerfiles to assemble all the images required by the pipeline
+* Scripts: folder containing a bash script to run the nextflow pipeline, and a set of R scripts for data post-processing and statistical analysis
+* pipeline.nf: nextflow pipeline main script
+* pipeline.conf: nextflow pipeline configuration file
+
 ## Getting started
 
 **Prerequisites**
