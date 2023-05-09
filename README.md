@@ -1,7 +1,11 @@
 # NanOlympicsMod
 
-This repository contains the code developed for benchmarking m6A-detection tools based on Nanopore direct RNA sequencing.
+NanOlympicsMod is a Nextflow pipeline for running multiple m6A detection tools based on Nanopore direct RNA sequencing data.
 
+<p align="center">
+  <img src="NanOlympicsMod_logo.png" alt="drawing" width=200" title="NanOlympicsMod_logo">
+</p>
+                                                                                         
 ## Getting started
 
 **Prerequisites**
