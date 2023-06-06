@@ -8,7 +8,7 @@ def parse_args(args):
     '''
     parses command line arguments
     '''
-    parser = argparse.ArgumentParser(description ='Filters MAZTER-seq output suppl table')
+    parser = argparse.ArgumentParser(description ='Performs lift over from m6A-seq and MAZTER-seq reference to sk1 reference')
 
     parser.add_argument('--bed', '-b', type = str, help = 'input sk1 bed12 file')
 
@@ -18,7 +18,7 @@ def parse_args(args):
 
     parser.add_argument('--mazter', '-i', type = str, help = 'Schwartz mazter m6a sites table file (Supp Table 4)')
 
-    parser.add_argument('--outfile', '-o', type = str, help = 'output fasta file')
+    parser.add_argument('--outfile', '-o', type = str, help = 'output bed file')
 
     return parser.parse_args()
 ###############################################################################
