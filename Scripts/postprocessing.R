@@ -514,8 +514,8 @@ output_processing <- function(tool, path_folder, output_file, filtering_paramete
               df_tombo$Pvalue <- 10**(-as.numeric(tombo[names_df_tombo, 5])) # Parameter of filtering is Pvalue not -log10(Pvalue)
               df_tombo_final <- df_tombo[,c(1,2,3,4,8,9)]
               colnames(df_tombo_final) <- c("Chr", "Start", "End", "Strand", "Status", "Pvalue")
-              df_tombo_final$Start <- df_tombo_final$Start + 1
-              df_tombo_final$End <- df_tombo_final$End
+              df_tombo_final$Start <- df_tombo_final$Start
+              df_tombo_final$End <- df_tombo_final$End + 1
               write.table(df_tombo_final, file = output_file, quote = F, sep = "\t", row.names = F)
             }
               else {message(paste0(tool,"'s output files don't exist."))}
