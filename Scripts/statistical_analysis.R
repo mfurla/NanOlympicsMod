@@ -299,6 +299,7 @@ Run_statistical_analysis <- function(genesBins_par, peaks_par, files_par, notes 
       negat <- new_matrix[which(new_matrix[, "RS"] == 0), "max_thr"]
       
       pr <- pr.curve(posit, negat, curve = T, rand.compute=TRUE)
+      save(pr, file = paste0(resultsFolder, "/Nanom6A_PRcurve", notes, "_window_", w, "bp.Rdata"))
       pdf(file = paste0(resultsFolder, "/Nanom6A_PRcurve", notes, "_window_", w, "bp.pdf"), width = 8, height = 8)
       plot(pr, main = "Nanom6A Precision-Recall curve", rand.plot=TRUE)
       dev.off()
@@ -336,6 +337,10 @@ Run_statistical_analysis <- function(genesBins_par, peaks_par, files_par, notes 
     cat("All genome bins include peaks, skipping summary PR curve plotting\n")
   }
   
+  ind_nanom6A <- grep(pattern = "Nanom6A", x = colnames(overlapMatrix))
+  if (length(ind_nanom6A) > 0) {
+    colnames(overlapMatrix)[ind_nanom6A] <- gsub(x = colnames(overlapMatrix)[ind_nanom6A], pattern = "_ratio.*", replacement = "")
+  }
   colnames(overlapMatrix) <- gsub(pattern = "_output.*", replacement = "", x = colnames(overlapMatrix))
   
   data_ovlp <- matrix(data = 0, nrow = dim(overlapMatrix)[2] - 1, ncol = dim(overlapMatrix)[2] - 1)
