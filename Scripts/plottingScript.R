@@ -539,6 +539,34 @@ ggplot(performances, aes(x = tool, y = accuracy, fill = motif)) +
         panel.background = element_blank())
 ggsave("/path/to/RRACH_accuracy.pdf")
 
+# Accuracies stratification according to RRACHs frequency
+accuracies <- get(load("RRACH_accuracy.Rdata"))
+
+accuraciesTop <- accuracies[sapply(strsplit(accuracies[,2]," "),"[[",1)%in%c("GGACC","AGACA","TGACT","AGACT","GAACT","GGACA","GGACT"),]
+accuraciesBottom <- accuracies[!(sapply(strsplit(accuracies[,2]," "),"[[",1)%in%c("GGACC","AGACA","TGACT","AGACT","GAACT","GGACA","GGACT")),]
+
+accuraciesTop <- split(accuraciesTop[,4],accuraciesTop[,1])
+accuraciesBottom <- split(accuraciesBottom[,4],accuraciesBottom[,1])
+
+all(sapply(accuraciesTop,median)>sapply(accuraciesBottom,median))
+
+accuracies <- list()
+for(i in names(accuraciesTop))
+{
+  accuracies <- append(accuracies,accuraciesTop[i])
+  accuracies <- append(accuracies,accuraciesBottom[i])
+  accuracies <- append(accuracies,NA)
+}
+names(accuracies) <- c(sapply(names(accuraciesTop),function(i)c(NA,i,NA)))
+
+pdf("RRACHsAccuracies.pdf",width=6,height=6)
+par(mfrow=c(2,1))
+
+boxplot(accuracies,outline=FALSE,las=2,ylab="Accuracy",col=c(2,3,1))
+legend("topright",col=2:3,pch=15,legend=c("Common RRACHs","Uncommon RRACHs"),bty="n")
+
+dev.off()
+
 ###############################
 #False Positive, True Positive, False Negative bins motif enrichment analysis
 
@@ -575,6 +603,216 @@ names(FN_bins_all) <- c("control_seq", colnames(hitsMatrix)[2:dim(hitsMatrix)[2]
 save(FN_bins_all, file = "/path/to/FN_bins.RData")
 
 #run XSTREME from MEME-suite online
+
+### Custom functions
+## CG content from FASTA sequences
+cgContentFunction <- function(fastaPath)
+{
+  fastaTmp <- readLines(fastaPath)
+  fastaTmp <- fastaTmp[!grepl(">",fastaTmp)]
+  CGTmp <- sapply(fastaTmp,function(i)sum(strsplit(i,"")[[1]]=="C"|strsplit(i,"")[[1]]=="G")/length(strsplit(i,"")[[1]]))
+}
+
+## Extraction of the Free Energy estimates from the output of the RNAfold method
+energyFunction <- function(outPath)
+{
+  outTmp <- readLines(outPath)
+  outTmp <- outTmp[!grepl(">",outTmp)]
+  outTmp <- outTmp[grepl("[(]",outTmp)]
+  energyTmp <- sapply(outTmp,function(i)strsplit(i,"-")[[1]][2])
+  energyTmp <- unname(-1*as.numeric(gsub("[)]","",energyTmp)))
+  energyTmp[!is.finite(energyTmp)] <- 0
+  energyTmp
+}
+
+## Shannon Entropy from FASTA sequences
+entropyFunction <- function(fastaPath)
+{
+  fastaTmp <- readLines(fastaPath)
+  fastaTmp <- fastaTmp[!grepl(">",fastaTmp)]
+  CGTmp <- sapply(fastaTmp,function(i)Entropy(table(strsplit(i,"")[[1]])))
+}
+
+### False Positives
+## Saving FASTAs as text files
+FP_bins <- get(load("FP_bins.Rda"))
+for(i in names(FP_bins))
+{
+  sink(paste0("FP_FASTA/FP_",i,".fasta"))
+  for(j in seq_along(FP_bins[[i]]$sequence))
+  {
+    cat(paste0(">",j,"\n"))
+    cat(paste0(FP_bins[[i]]$sequence[[j]],"\n"))
+  }
+  sink()
+}
+
+## CG content
+cgContent_FP <- lapply(list.files("FP_FASTA/",pattern="[.]fasta$"),function(i)cgContentFunction(paste0("FP_FASTA/",i)))
+names(cgContent_FP) <- gsub("[.]fasta","",list.files("FP_FASTA/",pattern="[.]fasta$"))
+names(cgContent_FP)[[10]] <- "Control"
+cgContent_FP <- cgContent_FP[names(sort(sapply(cgContent_FP,median)))]
+
+### RNAfold from the Vienna package required for Free Energy estimation.
+## Running RNAfold
+for(i in list.files("FP_FASTA/",pattern="[.]fasta$"))
+{
+  print(i)
+  system("mkdir RNAfoldTmp")
+  setwd("RNAfoldTmp")
+  system(paste0("RNAfold -d2 --noLP < ../FP_FASTA/",i," > ",i,".out"))
+  system("mv *.out ../FP_FASTA")
+  setwd("../")
+  system("rm -r RNAfoldTmp")
+}
+
+energy_FP <- lapply(list.files("FP_FASTA/",pattern="[.]out$"),function(i)energyFunction(paste0("FP_FASTA/",i)))
+names(energy_FP) <- list.files("FP_FASTA/",pattern="[.]out$")
+names(energy_FP) <- gsub("[.]fasta[.]out","",list.files("FP_FASTA/",pattern="[.]out$"))
+names(energy_FP)[[10]] <- "Control"
+
+energy_FP <- energy_FP[names(sort(sapply(energy_FP,median),decreasing=TRUE))]
+
+## Entropy estimation
+entropy_FP <- lapply(list.files("FP_FASTA/",pattern="[.]fasta$"),function(i)entropyFunction(paste0("FP_FASTA/",i)))
+names(entropy_FP) <- gsub("[.]fasta","",list.files("FP_FASTA/",pattern="[.]fasta$"))
+names(entropy_FP)[[10]] <- "Control"
+entropy_FP <- entropy_FP[names(sort(sapply(entropy_FP,median)))]
+
+### True Positives
+## Saving FASTAs as text files
+TP_bins <- get(load("TP_bins.Rda"))
+for(i in names(TP_bins))
+{
+  sink(paste0("TP_FASTA/TP_",i,".fasta"))
+  for(j in seq_along(TP_bins[[i]]$sequence))
+  {
+    cat(paste0(">",j,"\n"))
+    cat(paste0(TP_bins[[i]]$sequence[[j]],"\n"))
+  }
+  sink()
+}
+
+cgContent_TP <- lapply(list.files("TP_FASTA/",pattern="[.]fasta$"),function(i)cgContentFunction(paste0("TP_FASTA/",i)))
+names(cgContent_TP) <- gsub("[.]fasta","",list.files("TP_FASTA/",pattern="[.]fasta$"))
+names(cgContent_TP) <- gsub("TP_","",names(cgContent_TP))
+names(cgContent_TP)[[10]] <- "Control"
+cgContent_TP <- cgContent_TP[names(sort(sapply(cgContent_TP,median)))]
+
+for(i in list.files("TP_FASTA/",pattern="[.]fasta$"))
+{
+  print(i)
+  system("mkdir RNAfoldTmp")
+  setwd("RNAfoldTmp")
+  system(paste0("RNAfold -d2 --noLP < ../TP_FASTA/",i," > ",i,".out"))
+  system("mv *.out ../TP_FASTA")
+  setwd("../")
+  system("rm -r RNAfoldTmp")
+}
+
+energy_TP <- lapply(list.files("TP_FASTA/",pattern="[.]out$"),function(i)energyFunction(paste0("TP_FASTA/",i)))
+names(energy_TP) <- list.files("TP_FASTA/",pattern="[.]out$")
+names(energy_TP) <- gsub("[.]fasta[.]out","",list.files("TP_FASTA/",pattern="[.]out$"))
+names(energy_TP) <- gsub("TP_","",names(energy_TP))
+names(energy_TP)[[10]] <- "Control"
+
+energy_TP <- energy_TP[names(sort(sapply(energy_TP,median),decreasing=TRUE))]
+
+entropy_TP <- lapply(list.files("TP_FASTA/",pattern="[.]fasta$"),function(i)entropyFunction(paste0("TP_FASTA/",i)))
+names(entropy_TP) <- gsub("[.]fasta","",list.files("TP_FASTA/",pattern="[.]fasta$"))
+names(entropy_TP)[[10]] <- "Control"
+names(entropy_TP) <- gsub("TP_","",names(entropy_TP))
+entropy_TP <- entropy_TP[names(sort(sapply(entropy_TP,median)))]
+
+### False Negatives
+## Saving FASTAs as text files
+FN_bins <- get(load("FN_bins.Rda"))
+for(i in names(FN_bins))
+{
+  sink(paste0("FN_FASTA/FN_",i,".fasta"))
+  for(j in seq_along(FN_bins[[i]]$sequence))
+  {
+    cat(paste0(">",j,"\n"))
+    cat(paste0(FN_bins[[i]]$sequence[[j]],"\n"))
+  }
+  sink()
+}
+
+cgContent_FN <- lapply(list.files("FN_FASTA/",pattern="[.]fasta$"),function(i)cgContentFunction(paste0("FN_FASTA/",i)))
+names(cgContent_FN) <- gsub("[.]fasta","",list.files("FN_FASTA/",pattern="[.]fasta$"))
+names(cgContent_FN) <- gsub("FN_","",names(cgContent_FN))
+names(cgContent_FN)[[10]] <- "Control"
+cgContent_FN <- cgContent_FN[names(sort(sapply(cgContent_FN,median)))]
+
+for(i in list.files("FN_FASTA/",pattern="[.]fasta$"))
+{
+  print(i)
+  system("mkdir RNAfoldTmp")
+  setwd("RNAfoldTmp")
+  system(paste0("RNAfold -d2 --noLP < ../FN_FASTA/",i," > ",i,".out"))
+  system("mv *.out ../FN_FASTA")
+  setwd("../")
+  system("rm -r RNAfoldTmp")
+}
+
+energy_FN <- lapply(list.files("FN_FASTA/",pattern="[.]out$"),function(i)energyFunction(paste0("FN_FASTA/",i)))
+names(energy_FN) <- list.files("FN_FASTA/",pattern="[.]out$")
+names(energy_FN) <- gsub("[.]fasta[.]out","",list.files("FN_FASTA/",pattern="[.]out$"))
+names(energy_FN) <- gsub("FN_","",names(energy_FN))
+names(energy_FN)[[10]] <- "Control"
+
+energy_FN <- energy_FN[names(sort(sapply(energy_FN,median),decreasing=TRUE))]
+
+entropy_FN <- lapply(list.files("FN_FASTA/",pattern="[.]fasta$"),function(i)entropyFunction(paste0("FN_FASTA/",i)))
+names(entropy_FN) <- gsub("[.]fasta","",list.files("FN_FASTA/",pattern="[.]fasta$"))
+names(entropy_FN) <- gsub("FN_","",names(entropy_FN))
+names(entropy_FN)[[10]] <- "Control"
+entropy_FN <- entropy_FN[names(sort(sapply(entropy_FN,median)))]
+
+### Plots
+## Single files for plots
+cgContent <- list()
+for(i in names(cgContent_TP)[-1])
+{
+  cgContent <- append(cgContent,cgContent_TP[i])
+  cgContent <- append(cgContent,cgContent_FN[i])
+  cgContent <- append(cgContent,cgContent_FP[i])
+  cgContent <- append(cgContent,NA)
+}
+
+energy <- list()
+for(i in names(cgContent_TP)[-1])
+{
+  energy <- append(energy,energy_TP[i])
+  energy <- append(energy,energy_FN[i])
+  energy <- append(energy,energy_FP[i])
+  energy <- append(energy,NA)
+}
+
+entropy <- list()
+for(i in names(cgContent_TP)[-1])
+{
+  entropy <- append(entropy,entropy_TP[i])
+  entropy <- append(entropy,entropy_FN[i])
+  entropy <- append(entropy,entropy_FP[i])
+  entropy <- append(entropy,NA)
+}
+
+names(entropy) <- names(energy) <- names(cgContent) <- c(sapply(names(cgContent_TP)[-1],function(i)c(NA,i,NA,NA)))
+
+pdf("sequenceFeatures.pdf",width=12,height=6)
+par(mfrow=c(2,3))
+
+boxplot(cgContent,outline=FALSE,ylim=c(0.37,0.6),las=2,ylab="GC [%]",col=rep(c(2,3,4,1),3),main="GC content",whisklty=0,staplelty=0)
+legend("top",col=2:4,pch=15,legend=c("TP","FN","FP"),ncol=3,bty="n")
+
+boxplot(energy,outline=FALSE,las=2,ylab="kcal/Mol",col=rep(c(2,3,4,1),3),ylim=c(-13,-4),main="Free Energy",whisklty=0,staplelty=0)
+legend("top",col=2:4,pch=15,legend=c("TP","FN","FP"),ncol=3,bty="n")
+
+boxplot(entropy,outline=FALSE,las=2,ylab="bits",col=rep(c(2,3,4,1),3),ylim=c(1.85,2),main="Shannon Entropy",whisklty=0,staplelty=0)
+legend("top",col=2:4,pch=15,legend=c("TP","FN","FP"),ncol=3,bty="n")
+
+dev.off()
 
 ################
 #plot performances at default parameters in terms of recall, precision and F1 score
