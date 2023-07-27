@@ -15,7 +15,6 @@ library("memes")
 library("RColorBrewer")
 library("ggpattern")
 library("RColorBrewer")
-library("DescTools")
 options(scipen = 1000)
 
 #choose dataset
@@ -306,18 +305,18 @@ num_filt_peaks_mESC["Yanocomp"] <- 47851  #number of lines in the associated out
 
 num_filt_peaks_HEK293T <- vector(mode = "numeric", length = length(tools))
 names(num_filt_peaks_HEK293T) <- tools
-num_filt_peaks_HEK293T["DENA"] <- 38499  #number of lines in the associated output bed file after filtering at default parameters; previous num_filt_peaks object.
+num_filt_peaks_HEK293T["DENA"] <- 45281  #number of lines in the associated output bed file after filtering at default parameters; previous num_filt_peaks object.
 num_filt_peaks_HEK293T["DiffErr"] <- 235104  #number of lines in the associated output bed file after filtering at default parameters; previous num_filt_peaks object.
-num_filt_peaks_HEK293T["ELIGOS"] <- 7  #number of lines in the associated output bed file after filtering at default parameters; previous num_filt_peaks object.
-num_filt_peaks_HEK293T["EpiNano-SVM"] <- 29791  #number of lines in the associated output bed file after filtering at default parameters; previous num_filt_peaks object.
-num_filt_peaks_HEK293T["EpiNano-Error"] <- 42800  #number of lines in the associated output bed file after filtering at default parameters; previous num_filt_peaks object.
-num_filt_peaks_HEK293T["m6Anet"] <- 523  #number of lines in the associated output bed file after filtering at default parameters; previous num_filt_peaks object.
-num_filt_peaks_HEK293T["MINES"] <- 14894  #number of lines in the associated output bed file after filtering at default parameters; previous num_filt_peaks object.
-num_filt_peaks_HEK293T["Nanocompore"] <-  747  #number of lines in the associated output bed file after filtering at default parameters; previous num_filt_peaks object.
-num_filt_peaks_HEK293T["Nanom6A"] <- 23008  #number of lines in the associated output bed file after filtering at default parameters; previous num_filt_peaks object.
+num_filt_peaks_HEK293T["ELIGOS"] <- 1114  #number of lines in the associated output bed file after filtering at default parameters; previous num_filt_peaks object.
+num_filt_peaks_HEK293T["EpiNano-SVM"] <- 36403  #number of lines in the associated output bed file after filtering at default parameters; previous num_filt_peaks object.
+num_filt_peaks_HEK293T["EpiNano-Error"] <- NA  #number of lines in the associated output bed file after filtering at default parameters; previous num_filt_peaks object.
+num_filt_peaks_HEK293T["m6Anet"] <- 2627  #number of lines in the associated output bed file after filtering at default parameters; previous num_filt_peaks object.
+num_filt_peaks_HEK293T["MINES"] <- 17772  #number of lines in the associated output bed file after filtering at default parameters; previous num_filt_peaks object.
+num_filt_peaks_HEK293T["Nanocompore"] <-  756  #number of lines in the associated output bed file after filtering at default parameters; previous num_filt_peaks object.
+num_filt_peaks_HEK293T["Nanom6A"] <- 25931  #number of lines in the associated output bed file after filtering at default parameters; previous num_filt_peaks object.
 num_filt_peaks_HEK293T["Tombo"] <- 109387  #number of lines in the associated output bed file after filtering at default parameters; previous num_filt_peaks object.
 num_filt_peaks_HEK293T["xPore"] <- 72127  #number of lines in the associated output bed file after filtering at default parameters; previous num_filt_peaks object.
-num_filt_peaks_HEK293T["Yanocomp"] <- 4702  #number of lines in the associated output bed file after filtering at default parameters; previous num_filt_peaks object.
+num_filt_peaks_HEK293T["Yanocomp"] <- 4700  #number of lines in the associated output bed file after filtering at default parameters; previous num_filt_peaks object.
 
 num_hits_df <- data.frame(Tool = c(names(num_filt_peaks_oligos), names(num_filt_peaks_yeast), names(num_filt_peaks_mESC), names(num_filt_peaks_HEK293T)), Dataset = c(rep("Oligos", length(num_filt_peaks_oligos)), rep("Yeast", length(num_filt_peaks_yeast)), rep("mESC", length(num_filt_peaks_mESC)), rep("HEK293T", length(num_filt_peaks_HEK293T))), Num_hits = c(num_filt_peaks_oligos, num_filt_peaks_yeast, num_filt_peaks_mESC, num_filt_peaks_HEK293T))
 num_hits_df <- num_hits_df[which(num_hits_df$Num_hits != 0), ]
@@ -540,34 +539,6 @@ ggplot(performances, aes(x = tool, y = accuracy, fill = motif)) +
         panel.background = element_blank())
 ggsave("/path/to/RRACH_accuracy.pdf")
 
-# Accuracies stratification according to RRACHs frequency
-accuracies <- get(load("RRACH_accuracy.Rdata"))
-
-accuraciesTop <- accuracies[sapply(strsplit(accuracies[,2]," "),"[[",1)%in%c("GGACC","AGACA","TGACT","AGACT","GAACT","GGACA","GGACT"),]
-accuraciesBottom <- accuracies[!(sapply(strsplit(accuracies[,2]," "),"[[",1)%in%c("GGACC","AGACA","TGACT","AGACT","GAACT","GGACA","GGACT")),]
-
-accuraciesTop <- split(accuraciesTop[,4],accuraciesTop[,1])
-accuraciesBottom <- split(accuraciesBottom[,4],accuraciesBottom[,1])
-
-all(sapply(accuraciesTop,median)>sapply(accuraciesBottom,median))
-
-accuracies <- list()
-for(i in names(accuraciesTop))
-{
-	accuracies <- append(accuracies,accuraciesTop[i])
-	accuracies <- append(accuracies,accuraciesBottom[i])
-	accuracies <- append(accuracies,NA)
-}
-names(accuracies) <- c(sapply(names(accuraciesTop),function(i)c(NA,i,NA)))
-
-pdf("RRACHsAccuracies.pdf",width=6,height=6)
-par(mfrow=c(2,1))
-
-boxplot(accuracies,outline=FALSE,las=2,ylab="Accuracy",col=c(2,3,1))
-legend("topright",col=2:3,pch=15,legend=c("Common RRACHs","Uncommon RRACHs"),bty="n")
-
-dev.off()
-                         
 ###############################
 #False Positive, True Positive, False Negative bins motif enrichment analysis
 
@@ -605,216 +576,6 @@ save(FN_bins_all, file = "/path/to/FN_bins.RData")
 
 #run XSTREME from MEME-suite online
 
-### Custom functions
-## CG content from FASTA sequences
-cgContentFunction <- function(fastaPath)
-{
-	fastaTmp <- readLines(fastaPath)
-	fastaTmp <- fastaTmp[!grepl(">",fastaTmp)]
-	CGTmp <- sapply(fastaTmp,function(i)sum(strsplit(i,"")[[1]]=="C"|strsplit(i,"")[[1]]=="G")/length(strsplit(i,"")[[1]]))
-}
-
-## Extraction of the Free Energy estimates from the output of the RNAfold method
-energyFunction <- function(outPath)
-{
-	outTmp <- readLines(outPath)
-	outTmp <- outTmp[!grepl(">",outTmp)]
-	outTmp <- outTmp[grepl("[(]",outTmp)]
-	energyTmp <- sapply(outTmp,function(i)strsplit(i,"-")[[1]][2])
-	energyTmp <- unname(-1*as.numeric(gsub("[)]","",energyTmp)))
-	energyTmp[!is.finite(energyTmp)] <- 0
-	energyTmp
-}
-
-## Shannon Entropy from FASTA sequences
-entropyFunction <- function(fastaPath)
-{
-	fastaTmp <- readLines(fastaPath)
-	fastaTmp <- fastaTmp[!grepl(">",fastaTmp)]
-	CGTmp <- sapply(fastaTmp,function(i)Entropy(table(strsplit(i,"")[[1]])))
-}
-
-### False Positives
-## Saving FASTAs as text files
-FP_bins <- get(load("FP_bins.Rda"))
-for(i in names(FP_bins))
-{
-	sink(paste0("FP_FASTA/FP_",i,".fasta"))
-	for(j in seq_along(FP_bins[[i]]$sequence))
-	{
-		cat(paste0(">",j,"\n"))
-		cat(paste0(FP_bins[[i]]$sequence[[j]],"\n"))
-	}
-	sink()
-}
-
-## CG content
-cgContent_FP <- lapply(list.files("FP_FASTA/",pattern="[.]fasta$"),function(i)cgContentFunction(paste0("FP_FASTA/",i)))
-names(cgContent_FP) <- gsub("[.]fasta","",list.files("FP_FASTA/",pattern="[.]fasta$"))
-names(cgContent_FP)[[10]] <- "Control"
-cgContent_FP <- cgContent_FP[names(sort(sapply(cgContent_FP,median)))]
-
-### RNAfold from the Vienna package required for Free Energy estimation.
-## Running RNAfold
-for(i in list.files("FP_FASTA/",pattern="[.]fasta$"))
-{
-	print(i)
-	system("mkdir RNAfoldTmp")
-	setwd("RNAfoldTmp")
-	system(paste0("RNAfold -d2 --noLP < ../FP_FASTA/",i," > ",i,".out"))
-	system("mv *.out ../FP_FASTA")
-	setwd("../")
-	system("rm -r RNAfoldTmp")
-}
-
-energy_FP <- lapply(list.files("FP_FASTA/",pattern="[.]out$"),function(i)energyFunction(paste0("FP_FASTA/",i)))
-names(energy_FP) <- list.files("FP_FASTA/",pattern="[.]out$")
-names(energy_FP) <- gsub("[.]fasta[.]out","",list.files("FP_FASTA/",pattern="[.]out$"))
-names(energy_FP)[[10]] <- "Control"
-
-energy_FP <- energy_FP[names(sort(sapply(energy_FP,median),decreasing=TRUE))]
-
-## Entropy estimation
-entropy_FP <- lapply(list.files("FP_FASTA/",pattern="[.]fasta$"),function(i)entropyFunction(paste0("FP_FASTA/",i)))
-names(entropy_FP) <- gsub("[.]fasta","",list.files("FP_FASTA/",pattern="[.]fasta$"))
-names(entropy_FP)[[10]] <- "Control"
-entropy_FP <- entropy_FP[names(sort(sapply(entropy_FP,median)))]
-
-### True Positives
-## Saving FASTAs as text files
-TP_bins <- get(load("TP_bins.Rda"))
-for(i in names(TP_bins))
-{
-	sink(paste0("TP_FASTA/TP_",i,".fasta"))
-	for(j in seq_along(TP_bins[[i]]$sequence))
-	{
-		cat(paste0(">",j,"\n"))
-		cat(paste0(TP_bins[[i]]$sequence[[j]],"\n"))
-	}
-	sink()
-}
-
-cgContent_TP <- lapply(list.files("TP_FASTA/",pattern="[.]fasta$"),function(i)cgContentFunction(paste0("TP_FASTA/",i)))
-names(cgContent_TP) <- gsub("[.]fasta","",list.files("TP_FASTA/",pattern="[.]fasta$"))
-names(cgContent_TP) <- gsub("TP_","",names(cgContent_TP))
-names(cgContent_TP)[[10]] <- "Control"
-cgContent_TP <- cgContent_TP[names(sort(sapply(cgContent_TP,median)))]
-
-for(i in list.files("TP_FASTA/",pattern="[.]fasta$"))
-{
-	print(i)
-	system("mkdir RNAfoldTmp")
-	setwd("RNAfoldTmp")
-	system(paste0("RNAfold -d2 --noLP < ../TP_FASTA/",i," > ",i,".out"))
-	system("mv *.out ../TP_FASTA")
-	setwd("../")
-	system("rm -r RNAfoldTmp")
-}
-
-energy_TP <- lapply(list.files("TP_FASTA/",pattern="[.]out$"),function(i)energyFunction(paste0("TP_FASTA/",i)))
-names(energy_TP) <- list.files("TP_FASTA/",pattern="[.]out$")
-names(energy_TP) <- gsub("[.]fasta[.]out","",list.files("TP_FASTA/",pattern="[.]out$"))
-names(energy_TP) <- gsub("TP_","",names(energy_TP))
-names(energy_TP)[[10]] <- "Control"
-
-energy_TP <- energy_TP[names(sort(sapply(energy_TP,median),decreasing=TRUE))]
-
-entropy_TP <- lapply(list.files("TP_FASTA/",pattern="[.]fasta$"),function(i)entropyFunction(paste0("TP_FASTA/",i)))
-names(entropy_TP) <- gsub("[.]fasta","",list.files("TP_FASTA/",pattern="[.]fasta$"))
-names(entropy_TP)[[10]] <- "Control"
-names(entropy_TP) <- gsub("TP_","",names(entropy_TP))
-entropy_TP <- entropy_TP[names(sort(sapply(entropy_TP,median)))]
-
-### False Negatives
-## Saving FASTAs as text files
-FN_bins <- get(load("FN_bins.Rda"))
-for(i in names(FN_bins))
-{
-	sink(paste0("FN_FASTA/FN_",i,".fasta"))
-	for(j in seq_along(FN_bins[[i]]$sequence))
-	{
-		cat(paste0(">",j,"\n"))
-		cat(paste0(FN_bins[[i]]$sequence[[j]],"\n"))
-	}
-	sink()
-}
-
-cgContent_FN <- lapply(list.files("FN_FASTA/",pattern="[.]fasta$"),function(i)cgContentFunction(paste0("FN_FASTA/",i)))
-names(cgContent_FN) <- gsub("[.]fasta","",list.files("FN_FASTA/",pattern="[.]fasta$"))
-names(cgContent_FN) <- gsub("FN_","",names(cgContent_FN))
-names(cgContent_FN)[[10]] <- "Control"
-cgContent_FN <- cgContent_FN[names(sort(sapply(cgContent_FN,median)))]
-
-for(i in list.files("FN_FASTA/",pattern="[.]fasta$"))
-{
-	print(i)
-	system("mkdir RNAfoldTmp")
-	setwd("RNAfoldTmp")
-	system(paste0("RNAfold -d2 --noLP < ../FN_FASTA/",i," > ",i,".out"))
-	system("mv *.out ../FN_FASTA")
-	setwd("../")
-	system("rm -r RNAfoldTmp")
-}
-
-energy_FN <- lapply(list.files("FN_FASTA/",pattern="[.]out$"),function(i)energyFunction(paste0("FN_FASTA/",i)))
-names(energy_FN) <- list.files("FN_FASTA/",pattern="[.]out$")
-names(energy_FN) <- gsub("[.]fasta[.]out","",list.files("FN_FASTA/",pattern="[.]out$"))
-names(energy_FN) <- gsub("FN_","",names(energy_FN))
-names(energy_FN)[[10]] <- "Control"
-
-energy_FN <- energy_FN[names(sort(sapply(energy_FN,median),decreasing=TRUE))]
-
-entropy_FN <- lapply(list.files("FN_FASTA/",pattern="[.]fasta$"),function(i)entropyFunction(paste0("FN_FASTA/",i)))
-names(entropy_FN) <- gsub("[.]fasta","",list.files("FN_FASTA/",pattern="[.]fasta$"))
-names(entropy_FN) <- gsub("FN_","",names(entropy_FN))
-names(entropy_FN)[[10]] <- "Control"
-entropy_FN <- entropy_FN[names(sort(sapply(entropy_FN,median)))]
-
-### Plots
-## Single files for plots
-cgContent <- list()
-for(i in names(cgContent_TP)[-1])
-{
-	cgContent <- append(cgContent,cgContent_TP[i])
-	cgContent <- append(cgContent,cgContent_FN[i])
-	cgContent <- append(cgContent,cgContent_FP[i])
-	cgContent <- append(cgContent,NA)
-}
-
-energy <- list()
-for(i in names(cgContent_TP)[-1])
-{
-	energy <- append(energy,energy_TP[i])
-	energy <- append(energy,energy_FN[i])
-	energy <- append(energy,energy_FP[i])
-	energy <- append(energy,NA)
-}
-
-entropy <- list()
-for(i in names(cgContent_TP)[-1])
-{
-	entropy <- append(entropy,entropy_TP[i])
-	entropy <- append(entropy,entropy_FN[i])
-	entropy <- append(entropy,entropy_FP[i])
-	entropy <- append(entropy,NA)
-}
-
-names(entropy) <- names(energy) <- names(cgContent) <- c(sapply(names(cgContent_TP)[-1],function(i)c(NA,i,NA,NA)))
-
-pdf("sequenceFeatures.pdf",width=12,height=6)
-par(mfrow=c(2,3))
-
-boxplot(cgContent,outline=FALSE,ylim=c(0.37,0.6),las=2,ylab="GC [%]",col=rep(c(2,3,4,1),3),main="GC content",whisklty=0,staplelty=0)
-legend("top",col=2:4,pch=15,legend=c("TP","FN","FP"),ncol=3,bty="n")
-
-boxplot(energy,outline=FALSE,las=2,ylab="kcal/Mol",col=rep(c(2,3,4,1),3),ylim=c(-13,-4),main="Free Energy",whisklty=0,staplelty=0)
-legend("top",col=2:4,pch=15,legend=c("TP","FN","FP"),ncol=3,bty="n")
-
-boxplot(entropy,outline=FALSE,las=2,ylab="bits",col=rep(c(2,3,4,1),3),ylim=c(1.85,2),main="Shannon Entropy",whisklty=0,staplelty=0)
-legend("top",col=2:4,pch=15,legend=c("TP","FN","FP"),ncol=3,bty="n")
-
-dev.off()
-                         
 ################
 #plot performances at default parameters in terms of recall, precision and F1 score
 
@@ -1021,16 +782,16 @@ datasets_HEK293T <- c("HEK293T", "HEK293T_RRACH", "HEK293T_highcov")
 #performances at default parameters
 for (i in 1:length(datasets_HEK293T)) {
   if (datasets_HEK293T[i] == "HEK293T") {
-    recall_default_HEK293T <- c(0.30810268, 0.5302662159, 0.00005282062, 0.2158250581, 0.122068456, 0.02123388971, 0.1954891, 0.02984365096, 0.2354743, 0.1775829284, 0.362243820, 0.0897422354) #values stored in associated Performances_window_50bp.tsv file; last line for each tool.
-    precision_default_HEK293T <- c(0.2339939, 0.136455077, 0.1428571, 0.2082993, 0.09148852, 0.8663793, 0.382651, 0.9232026, 0.2297464, 0.1381776, 0.1550987, 0.565202927) #values stored in associated Performances_window_50bp.tsv file; last line for each tool.
-  } else if (datasets_HEK293T[i] == "HEK293T_RRACH") {
-    recall_default_HEK293T <- c(0.38231917, 0.5383264672, 0.00006753563, 0.2232727764, 0.139528601, 0.02566353752, 0.2415074, 0.03633416627, 0.292902, 0.1836969001, 0.375970825, 0.1000877963) #values stored in associated Performances_window_50bp.tsv file; last line for each tool.
-    precision_default_HEK293T <- c(0.2423062, 0.23485563, 0.5000000, 0.3480733, 0.13122459, 0.8796296, 0.3918904, 0.9522124, 0.2377611, 0.2380119, 0.2637889, 0.72011662) #values stored in associated Performances_window_50bp.tsv file; last line for each tool.
+    recall_default_HEK293T <- c(0.40159518, 0.5302662159, 0.03776674414, NA, 0.185400380, 0.09534122121, 0.2430805, 0.03000211282, 0.2829072, 0.1777413902, 0.362243820, 0.0878406930) #values stored in associated Performances_window_50bp.tsv file; last line for each tool.
+    precision_default_HEK293T <- c(0.2670812, 0.136455077, 0.9420290, NA, 0.11521796, 0.8861070, 0.4153055, 0.9265905, 0.2465022, 0.1380796, 0.1550987, 0.554518173) #values stored in associated Performances_window_50bp.tsv file; last line for each tool.
+    } else if (datasets_HEK293T[i] == "HEK293T_RRACH") {
+    recall_default_HEK293T <- c(0.49598163, 0.5383264672, 0.04410076315, NA, 0.216924428, 0.11237928007, 0.2996556, 0.03619909502, 0.3505774, 0.1839670426, 0.375970825, 0.0978591207) #values stored in associated Performances_window_50bp.tsv file; last line for each tool.
+    precision_default_HEK293T <- c(0.2788790, 0.23485563, 0.9588840, NA, 0.16386919, 0.9043478, 0.4308604, 0.9520426, 0.2544608, 0.2377586, 0.2637889, 0.72161355) #values stored in associated Performances_window_50bp.tsv file; last line for each tool.
     recall_default_HEK293T_RRACH <- recall_default_HEK293T
     precision_default_HEK293T_RRACH <- precision_default_HEK293T
   } else if (datasets_HEK293T[i] == "HEK293T_highcov") {
-    recall_default_HEK293T <- c(0.40183552, 0.8679143423, 0.0000000000, 0.3633255354, 0.105452582, 0.0381500810, 0.2794673, 0.0966348749, 0.5819687, 0.5785495771, 0.685801692, 0.2396976786) #values stored in associated Performances_window_50bp.tsv file; last line for each tool.
-    precision_default_HEK293T <- c(0.2365216, 0.13601241, 0.00000000, 0.31880625, 0.13333333, 0.8796680, 0.3841207, 0.9355401, 0.2327623, 0.1470790, 0.1664628, 0.64817518) #values stored in associated Performances_window_50bp.tsv file; last line for each tool.
+    recall_default_HEK293T <- c(0.50836782, 0.8679143423, 0.1157099154, NA, 0.1707755983, 0.1795933057, 0.3491092, 0.0969947814, 0.6206586, 0.5790894367, 0.685801692, 0.2366384740) #values stored in associated Performances_window_50bp.tsv file; last line for each tool.
+    precision_default_HEK293T <- c(0.2692271, 0.13601241, 0.9525926, NA, 0.18607843, 0.8966757, 0.4170249, 0.9373913, 0.235684, 0.1469675, 0.1664628, 0.64115066) #values stored in associated Performances_window_50bp.tsv file; last line for each tool.
     recall_default_HEK293T_highcov <- recall_default_HEK293T
     precision_default_HEK293T_highcov <- precision_default_HEK293T
   }
@@ -1281,8 +1042,8 @@ ggplot(mESC_running_time, aes(x = tool, y = time_h, fill = analysis_type, group 
         panel.background = element_blank())
 ggsave("/path/to/Running_time_mESC.pdf", height = 5, width = 7)
 
-time_h_HEK293T <- c(612.2, 612.2, 94.2, 992.2, 94.2, 94.2, 94.2, 94.2, 94.2, 94.2, 94.2, 612.2, 20, 580, 20, 2, 140, 890, 21.5, 102, 672, 320, 500, 490)
-tools_HEK293T <- c("Tombo", "Nanom6A", "DiffErr", "MINES", "xPore", "Nanocompore", "Yanocomp", "m6Anet", "ELIGOS", "EpiNano-SVM", "EpiNano-Error", "DENA")
+time_h_HEK293T <- c(612.2, 612.2, 94.2, 992.2, 94.2, 94.2, 94.2, 94.2, 94.2, 94.2, 612.2, 20, 740, 20, 2, 140, 870, 21.5, 102, 672, 360, 280)
+tools_HEK293T <- c("Tombo", "Nanom6A", "DiffErr", "MINES", "xPore", "Nanocompore", "Yanocomp", "m6Anet", "ELIGOS", "EpiNano-SVM", "DENA")
 tools_HEK293T <- factor(tools_HEK293T, levels = names(sort(unlist(lapply(split(time_h_HEK293T, tools_HEK293T), sum)), decreasing = TRUE)))
 analysis_type_HEK293T <- factor(rep(c("Preprocessing", "Tool execution"), each = length(tools_HEK293T)), levels = c("Tool execution", "Preprocessing"))
 HEK293T_running_time <- data.frame(tool = rep(tools_HEK293T, 2), analysis_type = analysis_type_HEK293T, time_h = time_h_HEK293T)
@@ -1328,32 +1089,32 @@ colors_PR <- c(colors_PR, "black")
 names(colors_PR) <- c(tools_tx_comp[-length(tools_tx_comp)], tools_gen_comp, tools_tx_ml, tools_gen_ml, tools_tx_comp[length(tools_tx_comp)])
 
 #25perc dataset
-F1_score_default_HEK293T_25perc <- c(0.23083975, 0.2038255492, NA, 0.1140313083, 0.12600529, 0.0134143785, 0.1744341, 0.0078901688, 0.1149714, 0.0555775787, 0.151685254, NA) #values stored in associated Performances_window_50bp.tsv file; last line for each tool.
+F1_score_default_HEK293T_25perc <- c(0.3238242, 0.312690676, 0.0183326643, 0.1395275591, 0.207060894, 0.0724111082, 0.2609279, 0.0100779360, 0.1699717, 0.0662697967, 0.201093245, NA) #values stored in associated Performances_window_50bp.tsv file; last line for each tool.
 names(F1_score_default_HEK293T_25perc) <- tools_HEK293T
-AUC_default_HEK293T_25perc <- c(0.07436783, 0.1144668, 0.009569654, 0.03699215, 0.06204342, 0.07009603, NA, 0.01448884, 0.02556765, 0.02280759, 0.06310136, NA) #values reported in PR_curves.pdf file
+AUC_default_HEK293T_25perc <- c(0.1040578, 0.1144668, 0.05006911, 0.03699215, 0.06709548, 0.1008135, NA, 0.0142202, 0.04065803, 0.02208066, 0.06310136, NA) #values reported in PR_curves.pdf file
 names(AUC_default_HEK293T_25perc) <- tools_HEK293T
-Num_hits_default_HEK293T_25perc <- c(22360, 1980260, 0, 16822, 18337, 149, 7253, 91, 7477, 23921, 33700, NA) #number of lines in the associated output bed file after filtering at default parameters; previous num_filt_peaks object.
+Num_hits_default_HEK293T_25perc <- c(26029, 1980260, 213, 16822, 21279, 728, 8522, 96, 9071, 23921, 33700, NA) #number of lines in the associated output bed file after filtering at default parameters; previous num_filt_peaks object.
 names(Num_hits_default_HEK293T_25perc) <- tools_HEK293T
 #50perc dataset
-F1_score_default_HEK293T_50perc <- c(0.28360936, 0.320969568, NA, 0.2021509381, 0.149032067, 0.0275174477, 0.2469624, 0.0307037948, 0.2038846, 0.1348472763, 0.262209941, 0.0991132633) #values stored in associated Performances_window_50bp.tsv file; last line for each tool.
+F1_score_default_HEK293T_50perc <- c(0.31356605, 0.2079635140, 0.0387043361, 0.1615737785, 0.156928908, 0.1114799584, 0.2696946, 0.0261471952, 0.207709, 0.1061134569, 0.189981171, 0.0857489682) #values stored in associated Performances_window_50bp.tsv file; last line for each tool.
 names(F1_score_default_HEK293T_50perc) <- tools_HEK293T
-AUC_default_HEK293T_50perc <- c(0.09141857, 0.1507256, 0.009874445, 0.06148881, 0.05868409, 0.1159027, NA, 0.03213464, 0.04363362, 0.05175607, 0.1086919, 0.05739017)  #values reported in PR_curves.pdf file
+AUC_default_HEK293T_50perc <- c(0.1230267, 0.1507256, 0.08666965, 0.06148881, 0.06315302, 0.164139, NA, 0.03220917, 0.06857422, 0.05152056, 0.1086919, 0.05695282) #values reported in PR_curves.pdf file
 names(AUC_default_HEK293T_50perc) <- tools_HEK293T
-Num_hits_default_HEK293T_50perc <- c(29277, 1429357, 5, 28242, 22082, 281, 10262, 289, 13893, 55814, 51545, 2429) #number of lines in the associated output bed file after filtering at default parameters; previous num_filt_peaks object.
+Num_hits_default_HEK293T_50perc <- c(35108, 1429357, 555, 28242, 28047, 1463, 12599, 301, 16257, 55814, 51545, 2464) #number of lines in the associated output bed file after filtering at default parameters; previous num_filt_peaks object.
 names(Num_hits_default_HEK293T_50perc) <- tools_HEK293T
 #75perc dataset
-F1_score_default_HEK293T_75perc <- c(0.26361424, 0.2119244188, 0.0001056301, 0.1948570956, 0.110108389, 0.0315074882, 0.2395326, 0.0401178721, 0.210142, 0.1378034803, 0.206357224, 0.1256304876) #values stored in associated Performances_window_50bp.tsv file; last line for each tool.
+F1_score_default_HEK293T_75perc <- c(0.31694807, 0.2119244188, 0.0555840427, 0.1948570956, 0.151693952, 0.1463107408, 0.2935723, 0.0406243539, 0.2427354, 0.1379579720, 0.206357224, 0.1239657832) #values stored in associated Performances_window_50bp.tsv file; last line for each tool.
 names(F1_score_default_HEK293T_75perc) <- tools_HEK293T
-AUC_default_HEK293T_75perc <- c(0.1020522, 0.1755889, 0.01123463, 0.08356577, 0.055301, 0.1495135, NA, 0.04608968, 0.05754316, 0.0753735, 0.1372065, 0.08190826)  #values reported in PR_curves.pdf file
+AUC_default_HEK293T_75perc <- c(0.1300546, 0.1755889, 0.1053225, 0.08356577, 0.06039177, 0.2076433, NA, 0.04724435, 0.08934331, 0.07465844, 0.1372065, 0.08102062) #values reported in PR_curves.pdf file
 names(AUC_default_HEK293T_75perc) <- tools_HEK293T
-Num_hits_default_HEK293T_75perc <- c(34880, 762111, 2, 36635, 26669, 400, 12857, 486, 19012, 83574, 61704, 3766) #number of lines in the associated output bed file after filtering at default parameters; previous num_filt_peaks object.
+Num_hits_default_HEK293T_75perc <- c(40731, 762111, 820, 36635, 32576, 2067, 15435, 503, 21677, 83574, 61704, 3756) #number of lines in the associated output bed file after filtering at default parameters; previous num_filt_peaks object.
 names(Num_hits_default_HEK293T_75perc) <- tools_HEK293T
 #Full dataset
-F1_score_default_HEK293T_full <- c(0.2659826693, 0.2170547666, 0.0001056022, 0.2119954097, 0.1045890665, 0.0414518457, 0.2587749911, 0.0578182562, 0.2325750884, 0.1554214706, 0.2172005717, 0.1548910566) #values stored in associated Performances_window_50bp.tsv file; last line for each tool.
+F1_score_default_HEK293T_full <- c(0.32080846, 0.2170547664, 0.0726220101, NA, 0.142116771, 0.1721589012, 0.3066671, 0.0581222819, 0.263453, 0.1554200730, 0.217200589, 0.1516574712) #values stored in associated Performances_window_50bp.tsv file; last line for each tool.
 names(F1_score_default_HEK293T_full) <- tools_HEK293T
-AUC_default_HEK293T_full <- c(0.1072606, 0.1921865, 0.01173427, 0.09542404, 0.05260477, 0.1743683, NA, 0.06418452, 0.06963739, 0.09624284, 0.1614879, 0.1010195)  #values reported in PR_curves.pdf file
+AUC_default_HEK293T_full <- c(0.1351879, 0.1921865, 0.1254483, NA, 0.05593083, 0.2410183, NA, 0.06591276, 0.1029251, 0.09603134, 0.1614879, 0.09951042) #values reported in PR_curves.pdf file
 names(AUC_default_HEK293T_full) <- tools_HEK293T
-Num_hits_default_HEK293T_full <- c(38499, 235104, 7, 42800, 29791, 523, 14894, 747, 23008, 109387, 72127, 4702) #number of lines in the associated output bed file after filtering at default parameters; previous num_filt_peaks object.
+Num_hits_default_HEK293T_full <- c(45281, 235104, 1114,  NA, 36403, 2627, 17772, 756, 25931, 109387, 72127, 4700) #number of lines in the associated output bed file after filtering at default parameters; previous num_filt_peaks object.
 names(Num_hits_default_HEK293T_full) <- tools_HEK293T
 
 #create dataframes
