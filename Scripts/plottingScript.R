@@ -1196,12 +1196,13 @@ for (d in 1:length(datasets)) {
   }
   #cycle across tools and plot PR curves in the same order among datasets
   for (i in match(intersect(c(tools_gen_comp, tools_tx_comp, tools_tx_ml, tools_gen_ml), names(PR_curves)), names(PR_curves))) {
+    subset_point <- c()
     if (length(PR_curves[[i]]$curve[, 1]) > num_points_plot) {
       range_x <- range(PR_curves[[i]]$curve[, 1])
       quantiles_x <- seq(from = range_x[1], to = range_x[2], length.out = 101)
       for (k in 1:(length(quantiles_x) - 1)) {
         indexes_range_curr <- intersect(which(PR_curves[[i]]$curve[, 1] >= quantiles_x[k]), which(PR_curves[[i]]$curve[, 1] <= quantiles_x[k + 1]))
-        subset_point <- c(sort(resample(x = indexes_range_curr, size = min(length(indexes_range_curr), round(num_points_plots[i]/100)))), subset_point)
+        subset_point <- c(sort(resample(x = indexes_range_curr, size = min(length(indexes_range_curr), round(num_points_plots[d]/100)))), subset_point)
       }
       #subset_point <- sort(sample(1:length(PR_curves[[i]]$curve[, 1]), num_points_plot))
     } else {
