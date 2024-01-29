@@ -64,3 +64,9 @@ The NanOlympicsMod pipeline requires you to open pipeline.conf configuration fil
 --threshold                                              Set of thresholds to use for the filtering of m6A sites (choose between 'default' and 'relaxed') 
 --peaksfile                                              Path to bed file with set of m6A gold-standard peaks
 ```
+
+## Citation
+
+If this tool is useful for your work, please consider citing our [manuscript](https://academic.oup.com/bib/article/25/2/bbae001/7590315).
+
+Maestri S, Furlan M, Mulroney L, et al. Benchmarking of computational methods for m6A profiling with Nanopore direct RNA sequencing. Brief Bioinform. 2024;25(2):bbae001. doi:10.1093/bib/bbae001
